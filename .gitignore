@@ -42,3 +42,8 @@ ml/models/item_knn.pkl
 *.backup_*
 *.save
 *.before_*
+
+# macOS junk files
+.DS_Store
+__MACOSX/
+._*
