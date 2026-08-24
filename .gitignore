@@ -1,0 +1,44 @@
+# Python virtual environments
+.venv/
+venv/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Node modules
+node_modules/
+
+# Environment variables / secrets
+.env
+.env.*
+
+# OS files
+.DS_Store
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Local secrets and environment backups
+*.env
+*.env.*
+*.ev
+
+# Large datasets / raw data
+ml/movies/
+ml/data/
+
+# Large ML artifacts - handle separately if needed
+ml/models/item_knn.pkl
+
+# Development backup files
+*.backup
+*.backup_*
+*.save
+*.before_*
+
+# Development backup files
+*.backup
+*.backup_*
+*.save
+*.before_*

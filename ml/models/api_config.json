@@ -1,0 +1,14 @@
+{
+  "endpoint": "/recommend",
+  "method": "GET",
+  "parameters": {
+    "user_id": "integer",
+    "top_k": "integer"
+  },
+  "response": {
+    "movieId": "integer",
+    "title": "string",
+    "genres": "string",
+    "score": "float"
+  }
+}

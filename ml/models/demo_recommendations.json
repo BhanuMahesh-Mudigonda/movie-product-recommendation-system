@@ -1,0 +1,62 @@
+[
+  {
+    "movieId": 296,
+    "title": "Pulp Fiction (1994)",
+    "genres": "Comedy|Crime|Drama|Thriller",
+    "score": 10.1617
+  },
+  {
+    "movieId": 1198,
+    "title": "Raiders of the Lost Ark (Indiana Jones and the Raiders of the Lost Ark) (1981)",
+    "genres": "Action|Adventure",
+    "score": 8.6192
+  },
+  {
+    "movieId": 1240,
+    "title": "Terminator, The (1984)",
+    "genres": "Action|Sci-Fi|Thriller",
+    "score": 8.4767
+  },
+  {
+    "movieId": 1089,
+    "title": "Reservoir Dogs (1992)",
+    "genres": "Crime|Mystery|Thriller",
+    "score": 7.0935
+  },
+  {
+    "movieId": 2916,
+    "title": "Total Recall (1990)",
+    "genres": "Action|Adventure|Sci-Fi|Thriller",
+    "score": 6.7481
+  },
+  {
+    "movieId": 858,
+    "title": "Godfather, The (1972)",
+    "genres": "Crime|Drama",
+    "score": 6.3475
+  },
+  {
+    "movieId": 2571,
+    "title": "Matrix, The (1999)",
+    "genres": "Action|Sci-Fi|Thriller",
+    "score": 6.0716
+  },
+  {
+    "movieId": 1214,
+    "title": "Alien (1979)",
+    "genres": "Horror|Sci-Fi",
+    "score": 6.0565
+  },
+  {
+    "movieId": 2289,
+    "title": "Player, The (1992)",
+    "genres": "Comedy|Crime|Drama",
+    "score": 6.041
+  },
+  {
+    "movieId": 1250,
+    "title": "Bridge on the River Kwai, The (1957)",
+    "genres": "Adventure|Drama|War",
+    "score": 5.7467
+  }
+]
