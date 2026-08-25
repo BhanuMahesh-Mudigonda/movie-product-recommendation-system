@@ -1,72 +1,116 @@
+/* LIBRARY PAGE CSS */
+
 .library-page {
-  padding: 40px;
-  min-height: 100%;
+  padding: 2rem;
+  min-height: 100vh;
+  color: #ffffff;
+}
+
+.dna-profile-card {
+  background: radial-gradient(circle at 20% 20%, rgba(0, 242, 255, 0.08) 0%, rgba(255, 107, 53, 0.06) 50%, rgba(5, 8, 13, 0.95) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 24px 28px;
+  margin-bottom: 28px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+}
+
+.dna-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  color: #00f2ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: 10px;
+}
+
+.dna-profile-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 3px;
+  color: #ffffff;
+  margin: 0 0 14px 0;
+}
+
+.dna-pills-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.dna-pill {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #e2e8f0;
+}
+
+.dna-pill.action {
+  border-color: rgba(255, 107, 53, 0.4);
+  color: #ff6b35;
+}
+
+.dna-pill.drama {
+  border-color: rgba(234, 179, 8, 0.4);
+  color: #eab308;
+}
+
+.dna-pill.adventure {
+  border-color: rgba(0, 242, 255, 0.4);
+  color: #00f2ff;
 }
 
 .library-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 2rem;
 }
 
 .library-title {
   font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  background: linear-gradient(90deg, #fff, #a5b4fc);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
 }
 
 .clear-history-btn {
-  background: rgba(239, 68, 68, 0.1);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.2);
+  background: rgba(255, 42, 95, 0.1);
+  border: 1px solid rgba(255, 42, 95, 0.4);
+  color: #ff2a5f;
   padding: 8px 16px;
   border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 500;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: all 0.25s ease;
 }
 
 .clear-history-btn:hover {
-  background: rgba(239, 68, 68, 0.2);
+  background: rgba(255, 42, 95, 0.25);
 }
 
-.empty-state {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 400px;
-  color: #94a3b8;
-  font-size: 1.1rem;
-  text-align: center;
-  background: rgba(30, 41, 59, 0.3);
-  border-radius: 12px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-}
-
-.library-grid {
+.movie-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 24px;
+  gap: 1.8rem;
 }
 
-@media (max-width: 768px) {
-  .library-page {
-    padding: 20px;
-  }
-  
-  .library-title {
-    font-size: 1.5rem;
-  }
-  
-  .library-grid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 16px;
-  }
+.library-empty {
+  padding: 4rem 2rem;
+  text-align: center;
+  color: #64748b;
+  font-size: 1.1rem;
+  letter-spacing: 2px;
 }

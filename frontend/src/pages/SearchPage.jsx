@@ -1,183 +1,705 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Search, Film } from 'lucide-react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import {
+  Search, Film, Heart, Zap, Smile, Moon, HeartHandshake, Crown, 
+  CloudRain, Flame, Play, Star, Calendar, Globe, Clock, ChevronRight, Check, Dices, Ghost, RefreshCw, Home, Sparkles
+} from 'lucide-react';
+
 import { movieSearchService } from '../services/MovieSearchService';
+import { movieMindBrain } from '../services/movieMindBrain';
+import { movieMindRanker } from '../services/movieMindRanker';
+import { movieEnrichmentService } from '../services/movieEnrichmentService';
 import SearchResultCard from '../components/SearchResultCard';
+import MovieCard from '../components/MovieCard';
 import TrailerModal from '../components/TrailerModal';
+import BackButton from '../components/BackButton';
+import { safeString, safeGenres } from '../utils/movieUtils';
+
 import './SearchPage.css';
 
 const searchCache = new Map();
 
-export default function SearchPage({ initialQuery = '', onMovieSelect }) {
-  const [query, setQuery] = useState(initialQuery);
-  const [debouncedQuery, setDebouncedQuery] = useState(initialQuery);
+const moods = [
+  { id: 'happy', icon: Smile, title: 'Feel Good', subtitle: 'Fun, happy and uplifting', query: 'comedy feel good family' },
+  { id: 'romantic', icon: Heart, title: 'Romantic', subtitle: 'Love stories and emotions', query: 'romance love emotional' },
+  { id: 'excited', icon: Zap, title: 'Adrenaline', subtitle: 'Action, thrill and intensity', query: 'action thriller intense spy' },
+  { id: 'dark', icon: Moon, title: 'Dark Mood', subtitle: 'Mystery, suspense and thrillers', query: 'crime mystery thriller dark' },
+  { id: 'emotional', icon: HeartHandshake, title: 'Emotional', subtitle: 'Deep, touching and meaningful', query: 'drama emotional sad touching' },
+  { id: 'epic', icon: Crown, title: 'Epic', subtitle: 'Grand stories and adventures', query: 'blockbuster adventure epic fantasy sci-fi' }
+];
+
+const RUSH_OPTIONS = ['Action', 'Thriller', 'Crime', 'Adventure', 'Spy'];
+const GENRE_OPTIONS = [
+  'Action', 'Thriller', 'Romance', 'Comedy', 'Drama', 
+  'Crime', 'Mystery', 'Sci-Fi', 'Fantasy', 'Adventure', 
+  'Horror', 'Family', 'Animation'
+];
+const TIME_OPTIONS = [
+  { id: 'Quick Watch', desc: 'Under 2 hours' },
+  { id: 'Standard', desc: 'Around 2 hours' },
+  { id: 'Long Movie', desc: '2.5+ hours' }
+];
+const LANGUAGE_OPTIONS = ['Telugu', 'Hindi', 'English', 'Any Language'];
+const ERA_OPTIONS = [
+  { id: 'Latest Available', desc: 'Newest in dataset', icon: Flame, color: 'text-orange' },
+  { id: 'Modern Favorites', desc: 'Relatively modern', icon: Star, color: 'text-gold' },
+  { id: 'Classic Favorites', desc: 'Older classics', icon: Crown, color: 'text-gold' },
+  { id: 'Surprise Me', desc: 'Controlled diversity', icon: Dices, color: 'text-violet' }
+];
+
+export default function SearchPage({
+  initialQuery = '',
+  onMovieSelect,
+  onBack
+}) {
+  // Global / Direct Search
+  const [globalQuery, setGlobalQuery] = useState(initialQuery);
+  const [debouncedGlobalQuery, setDebouncedGlobalQuery] = useState(initialQuery);
+
+  // Mood Search States
+  const [selectedMood, setSelectedMood] = useState(null);
   
+  // Step 2: Movie Taste / Genres
+  const [selectedGenres, setSelectedGenres] = useState([]);
+
+  // Step 3: Refinements
+  const [selectedRush, setSelectedRush] = useState([]);
+  const [selectedTime, setSelectedTime] = useState('Standard');
+  const [selectedLanguage, setSelectedLanguage] = useState('Any Language');
+  const [selectedEra, setSelectedEra] = useState('Latest Available');
+
+  // Live Search Dropdown States
+  const [showLiveDropdown, setShowLiveDropdown] = useState(false);
+  const [liveResults, setLiveResults] = useState([]);
+  const [isLiveLoading, setIsLiveLoading] = useState(false);
+
+  // Results & UI State
   const [movies, setMovies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
-  
-  // Trailer Modal State
+  const [searchError, setSearchError] = useState(false);
   const [isTrailerOpen, setIsTrailerOpen] = useState(false);
   const [currentTrailerUrl, setCurrentTrailerUrl] = useState(null);
+  const resultsRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const activeSearchId = useRef(0);
 
-  const openTrailer = (url) => {
-    setCurrentTrailerUrl(url);
-    setIsTrailerOpen(true);
+  const openTrailer = (url) => { 
+    setCurrentTrailerUrl(url); 
+    setIsTrailerOpen(true); 
+  };
+  
+  const closeTrailer = () => { 
+    setIsTrailerOpen(false); 
+    setCurrentTrailerUrl(null); 
   };
 
-  const closeTrailer = () => {
-    setIsTrailerOpen(false);
-    setCurrentTrailerUrl(null);
-  };
+  useEffect(() => {
+    if (initialQuery !== undefined) {
+      setGlobalQuery(initialQuery);
+      if (initialQuery.trim()) {
+        setDebouncedGlobalQuery(initialQuery.trim());
+      }
+    }
+  }, [initialQuery]);
 
-  // Debounce logic
   useEffect(() => {
     const timer = setTimeout(() => {
-      setDebouncedQuery(query);
-    }, 500);
+      setDebouncedGlobalQuery(globalQuery);
+    }, 200);
     return () => clearTimeout(timer);
-  }, [query]);
+  }, [globalQuery]);
 
-  const searchMovies = useCallback(async (searchText) => {
+  // Handle live top search dropdown
+  useEffect(() => {
+    const fetchLiveDropdown = async () => {
+      const q = globalQuery.trim();
+      if (q.length < 1) {
+        setShowLiveDropdown(false);
+        setLiveResults([]);
+        return;
+      }
+
+      try {
+        setIsLiveLoading(true);
+        setShowLiveDropdown(true);
+        const res = await movieSearchService.search(q, { query: q });
+        setLiveResults(Array.isArray(res) ? res.slice(0, 7) : []);
+      } catch {
+        setLiveResults([]);
+      } finally {
+        setIsLiveLoading(false);
+      }
+    };
+
+    const timer = setTimeout(fetchLiveDropdown, 200);
+    return () => clearTimeout(timer);
+  }, [globalQuery]);
+
+  const searchMovies = useCallback(async (searchText, filters = null) => {
     const cleanQuery = String(searchText || '').trim();
-
-    if (!cleanQuery) {
+    if (!cleanQuery && !filters) {
       setMovies([]);
       setHasSearched(false);
       return;
     }
 
-    if (searchCache.has(cleanQuery)) {
-      setMovies(searchCache.get(cleanQuery));
-      setHasSearched(true);
-      return;
-    }
+    const cacheKey = filters ? `${cleanQuery}-${JSON.stringify(filters)}` : cleanQuery;
 
     try {
       setLoading(true);
       setHasSearched(true);
+      setSearchError(false);
       
-      const results = await movieSearchService.search(cleanQuery);
-      setMovies(results);
-      searchCache.set(cleanQuery, results);
+      const currentRequestId = ++activeSearchId.current;
 
+      // Scroll to results if we aren't doing a direct global search typing
+      if (filters && resultsRef.current) {
+        resultsRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+
+      if (searchCache.has(cacheKey)) {
+        movieMindBrain.trackSearch(cleanQuery);
+        setMovies(searchCache.get(cacheKey));
+        return;
+      }
+
+      const searchIntent = filters ? { query: cleanQuery, filters } : { query: cleanQuery, filters: null };
+      let rawResults = await movieSearchService.search(cleanQuery || 'movie', searchIntent);
+      
+      if (currentRequestId !== activeSearchId.current) {
+        return; // Stale request protection
+      }
+
+      let candidatePool = Array.isArray(rawResults) ? [...rawResults] : [];
+
+      // Guarantee minimum pool size by fetching additional catalogue candidates if needed
+      if (candidatePool.length < 10) {
+        try {
+          const langQuery = (filters?.language && filters.language !== 'Any Language') ? filters.language : 'movie';
+          const fallbackCandidates = await movieSearchService.search(langQuery, searchIntent);
+          if (Array.isArray(fallbackCandidates)) {
+            const existingIds = new Set(candidatePool.map(m => String(m.movieId || m.id || m.title).toLowerCase()));
+            for (const cand of fallbackCandidates) {
+              const candId = String(cand.movieId || cand.id || cand.title).toLowerCase();
+              if (!existingIds.has(candId)) {
+                candidatePool.push(cand);
+                existingIds.add(candId);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn("Fallback candidate fetch warning:", e);
+        }
+      }
+
+      movieMindBrain.trackSearch(cleanQuery);
+      // Rank and score ALL candidate movies using weighted preference scoring
+      const rankedResults = movieMindRanker.rankMovies(candidatePool, searchIntent);
+      const enrichedResults = await movieEnrichmentService.enrichMovies(rankedResults.slice(0, 12));
+
+      if (currentRequestId === activeSearchId.current) {
+        // Guarantee at least 6 recommendations at all times
+        setMovies(enrichedResults.length > 0 ? enrichedResults : candidatePool.slice(0, 10));
+        searchCache.set(cacheKey, enrichedResults);
+      }
     } catch (error) {
       console.error('MovieMind search error:', error);
       setMovies([]);
+      setSearchError(true);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  // Trigger global search
   useEffect(() => {
-    const cleanQuery = String(debouncedQuery || '').trim();
+    const cleanQuery = String(debouncedGlobalQuery || '').trim();
     if (cleanQuery) {
+      setSelectedMood(null);
       searchMovies(cleanQuery);
-    } else {
+    } else if (!hasSearched) {
       setMovies([]);
-      setHasSearched(false);
     }
-  }, [debouncedQuery, searchMovies]);
+  }, [debouncedGlobalQuery, searchMovies, hasSearched]);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    if (query.trim() !== debouncedQuery.trim()) {
-      setDebouncedQuery(query); // instantly trigger if they hit enter
-    }
+  const handleGlobalSubmit = (e) => {
+    e.preventDefault();
+    if (globalQuery.trim()) setDebouncedGlobalQuery(globalQuery.trim());
   };
 
-  const getTitle = (movie) => movie?.title || movie?.Title || 'Unknown Movie';
-  const getGenres = (movie) => movie?.genres || movie?.genre || movie?.Genre || 'Movie';
-  const getPoster = (movie) => movie?.poster || movie?.Poster || null;
-  const getRating = (movie) => movie?.rating || movie?.imdbRating || movie?.avg_rating || null;
-  const getYear = (movie) => movie?.year || movie?.Year || '';
+  const handleMoodSelect = (moodId) => {
+    setSelectedMood(moodId === selectedMood ? null : moodId);
+  };
+
+  const toggleRush = (rush) => {
+    setSelectedRush(prev => {
+      if (prev.includes(rush)) return prev.filter(r => r !== rush);
+      if (prev.length >= 2) return [prev[1], rush];
+      return [...prev, rush];
+    });
+  };
+
+  const toggleGenre = (genre) => {
+    setSelectedGenres(prev => {
+      if (prev.includes(genre)) return prev.filter(g => g !== genre);
+      if (prev.length >= 3) return [...prev.slice(1), genre];
+      return [...prev, genre];
+    });
+  };
+
+  const handleDiscover = () => {
+    let combined = [];
+    if (selectedMood) {
+      const moodObj = moods.find(m => m.id === selectedMood);
+      if (moodObj) combined.push(moodObj.query);
+    }
+    if (selectedGenres.length > 0) combined.push(selectedGenres.join(' '));
+    if (selectedRush.length > 0) combined.push(selectedRush.join(' '));
+
+    const finalQuery = combined.join(' ');
+    
+    setShowLiveDropdown(false);
+
+    searchMovies(finalQuery || 'best movies', {
+      genres: selectedGenres,
+      language: selectedLanguage,
+      era: selectedEra,
+      time: selectedTime,
+      mood: selectedMood
+    });
+  };
 
   const renderSkeleton = () => (
-    <div className="dataset-movie-grid">
-      {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-        <div key={n} className="dataset-movie-item skeleton-item">
-          <div className="skeleton-number"></div>
-          <div className="skeleton-poster"></div>
-          <div className="skeleton-info">
-            <div className="skeleton-line title"></div>
-            <div className="skeleton-line meta"></div>
-            <div className="skeleton-line desc"></div>
-          </div>
-        </div>
-      ))}
+    <div className="discovery-skeleton">
+      <div className="skeleton-best-match"></div>
+      <div className="skeleton-row">
+        {[1,2,3,4,5].map(n => <div key={n} className="skeleton-card"></div>)}
+      </div>
     </div>
   );
 
+  const bestMatch = movies[0];
+  const moreMatches = movies.slice(1, 6);
+  const differentStyle = movies.slice(6, 12);
+
   return (
-    <div className="dataset-search-page">
-      <div className="dataset-search-hero">
-        <span className="dataset-search-label">UNIVERSAL SEARCH</span>
-        <h1>Search Movies</h1>
-        <p>Explore any movie from across the world.</p>
+    <div className="dataset-search-page discovery-engine-page">
+      
+      {onBack && <BackButton onBack={onBack} />}
+
+      {/* HEADER SECTION WITH LIVE DROPDOWN */}
+      <div className="discovery-header-area">
+        <div className="discovery-title-area">
+          <span className="dataset-search-label">MOVIEMIND DISCOVERY ENGINE</span>
+          <h1>Let's find your perfect movie <span className="text-cyan">tonight✨</span></h1>
+          <p>Tell us how you feel, and our AI will find something amazing for your mood.</p>
+        </div>
+        
+        <div className="global-search-wrapper" ref={dropdownRef}>
+          <form className="global-search-bar" onSubmit={handleGlobalSubmit}>
+            <Search size={20} />
+            <input 
+              type="text" 
+              placeholder="Search your next cinematic experience..." 
+              value={globalQuery}
+              onChange={(e) => setGlobalQuery(e.target.value)}
+              onFocus={() => { if (globalQuery.trim()) setShowLiveDropdown(true); }}
+            />
+          </form>
+
+          {showLiveDropdown && (
+            <div className="live-search-dropdown fade-in">
+              {isLiveLoading ? (
+                <div className="live-search-empty">Searching cinema archive...</div>
+              ) : liveResults.length > 0 ? (
+                liveResults.map(m => (
+                  <div 
+                    key={m.movieId || m.id || m.title} 
+                    className="live-search-item"
+                    onClick={() => {
+                      setShowLiveDropdown(false);
+                      onMovieSelect?.(m);
+                    }}
+                  >
+                    {m.poster ? (
+                      <img src={m.poster} alt={m.title} className="live-search-poster" />
+                    ) : (
+                      <div className="live-search-poster-fallback"><Film size={18} /></div>
+                    )}
+                    <div className="live-search-info">
+                      <h4>{safeString(m.title)}</h4>
+                      <p>{safeString(m.year)} • {safeString(m.language)} • {safeGenres(m.genres)}</p>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="live-search-empty">No direct matches found in archive.</div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
-      <form className="dataset-search-box" onSubmit={handleSubmit}>
-        <Search size={21} />
-        <input
-          type="text"
-          placeholder="Search global cinema..."
-          value={query}
-          autoFocus
-          onChange={(event) => setQuery(event.target.value)}
-        />
-        <button type="submit">Search</button>
-      </form>
+      {/* STEP 1: MOOD */}
+      <section className="discovery-step-section">
+        <div className="step-header">
+          <div className="step-number">1</div>
+          <div className="step-text">
+            <h2>HOW ARE YOU FEELING?</h2>
+            <p>Choose the mood that matches how you feel right now.</p>
+          </div>
+        </div>
 
+        <div className="mood-grid new-mood-grid">
+          {moods.map((mood) => {
+            const Icon = mood.icon;
+            const isActive = selectedMood === mood.id;
+            return (
+              <button
+                key={mood.id}
+                className={`new-mood-card ${mood.id} ${isActive ? 'active' : ''}`}
+                onClick={() => handleMoodSelect(mood.id)}
+              >
+                {isActive && <div className="mood-check"><Check size={14} /></div>}
+                <div className={`mood-icon`}>
+                  <Icon size={32} />
+                </div>
+                <h3>{mood.title}</h3>
+                <span>{mood.subtitle}</span>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* STEP 2: MOVIE TASTE / GENRE SELECTION */}
+      <section className="discovery-step-section">
+        <div className="step-header">
+          <div className="step-number">2</div>
+          <div className="step-text">
+            <h2>WHAT ARE YOU IN THE MOOD TO WATCH?</h2>
+            <p>Choose one or more styles you enjoy (Select up to 3).</p>
+          </div>
+        </div>
+
+        <div className="try-these" style={{ gap: '12px', marginTop: '10px' }}>
+          {GENRE_OPTIONS.map(genre => {
+            const isActive = selectedGenres.includes(genre);
+            return (
+              <button
+                key={genre}
+                className={`chip-btn ${isActive ? 'active' : ''}`}
+                style={{
+                  padding: '10px 20px',
+                  borderRadius: '25px',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  background: isActive ? 'rgba(6,182,212,0.2)' : 'var(--bg-surface)',
+                  borderColor: isActive ? 'var(--accent-cyan)' : 'var(--border-glass)',
+                  color: isActive ? 'white' : '#cbd5e1',
+                  boxShadow: isActive ? '0 4px 15px rgba(6,182,212,0.2)' : 'none'
+                }}
+                onClick={() => toggleGenre(genre)}
+              >
+                {genre} {isActive && <Check size={14} style={{ display: 'inline', marginLeft: '6px' }} />}
+              </button>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* STEP 3: REFINE */}
+      <section className="discovery-step-section refine-section">
+        <div className="step-header">
+          <div className="step-number">3</div>
+          <div className="step-text">
+            <h2>LET'S REFINE YOUR PREFERENCES</h2>
+            <p>Help us personalize your recommendations.</p>
+          </div>
+        </div>
+
+        <div className="refine-grid">
+          {/* RUSH */}
+          <div className="refine-col">
+            <h4>WHAT KIND OF RUSH? <span className="sub">(Select up to 2)</span></h4>
+            <div className="refine-options">
+              {RUSH_OPTIONS.map(opt => (
+                <button 
+                  key={opt} 
+                  className={`refine-btn ${selectedRush.includes(opt) ? 'active' : ''}`}
+                  onClick={() => toggleRush(opt)}
+                >
+                  <div className="btn-content">
+                    {opt === 'Action' && <Zap size={16} />}
+                    {opt === 'Thriller' && <Ghost size={16} />}
+                    {opt === 'Crime' && <Search size={16} />}
+                    {opt === 'Adventure' && <Flame size={16} />}
+                    {opt === 'Spy' && <Globe size={16} />}
+                    {opt}
+                  </div>
+                  {selectedRush.includes(opt) && <div className="check-circle"><Check size={12} /></div>}
+                </button>
+              ))}
+            </div>
+          </div>
+          
+          {/* TIME */}
+          <div className="refine-col">
+            <h4>HOW MUCH TIME?</h4>
+            <div className="refine-options">
+              {TIME_OPTIONS.map(opt => (
+                <button 
+                  key={opt.id} 
+                  className={`refine-btn flex-col ${selectedTime === opt.id ? 'active' : ''}`}
+                  onClick={() => setSelectedTime(opt.id)}
+                >
+                  <div className="btn-content">
+                    <Clock size={16} /> <span className="btn-title">{opt.id}</span>
+                  </div>
+                  <div className="btn-desc">{opt.desc}</div>
+                  {selectedTime === opt.id && <div className="check-circle"><Check size={12} /></div>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* LANGUAGE */}
+          <div className="refine-col">
+            <h4>LANGUAGE</h4>
+            <div className="refine-options">
+              {LANGUAGE_OPTIONS.map(opt => (
+                <button 
+                  key={opt} 
+                  className={`refine-btn ${selectedLanguage === opt ? 'active' : ''}`}
+                  onClick={() => setSelectedLanguage(opt)}
+                >
+                  <div className="btn-content">
+                    <span className="lang-icon">{opt.substring(0, 2).toUpperCase()}</span> {opt}
+                  </div>
+                  {selectedLanguage === opt && <div className="check-circle"><Check size={12} /></div>}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* ERA */}
+          <div className="refine-col">
+            <h4>WHEN DO YOU WANT TO WATCH?</h4>
+            <div className="refine-options">
+              {ERA_OPTIONS.map(opt => {
+                const Icon = opt.icon;
+                return (
+                  <button 
+                    key={opt.id} 
+                    className={`refine-btn flex-col ${selectedEra === opt.id ? 'active' : ''}`}
+                    onClick={() => setSelectedEra(opt.id)}
+                  >
+                    <div className="btn-content">
+                      <Icon size={16} className={opt.color} />
+                      <span className="btn-title">{opt.id}</span>
+                    </div>
+                    <div className="btn-desc">{opt.desc}</div>
+                    {selectedEra === opt.id && <div className="check-circle"><Check size={12} /></div>}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        <div className="find-action-wrapper">
+          <button className="find-perfect-btn" onClick={handleDiscover}>
+            Find My Perfect Movie <Sparkles size={20} />
+          </button>
+        </div>
+      </section>
+
+      {/* STEP 3: RESULTS */}
+      <div ref={resultsRef} className="scroll-anchor"></div>
+      
       {loading && hasSearched && (
-        <section className="dataset-movie-results">
-          <div className="results-section">
-            <div className="results-title">
-              <div>
-                <h2>Searching universe...</h2>
+        <section className="discovery-step-section results-section">
+          <div className="step-header">
+            <div className="step-number pulse">3</div>
+            <div className="step-text">
+              <h2>ANALYZING MOVIEMIND DATA...</h2>
+              <p>Finding the perfect matches for your mood.</p>
+            </div>
+          </div>
+          {renderSkeleton()}
+        </section>
+      )}
+
+      {!loading && hasSearched && !searchError && movies.length > 0 && (
+        <section className="results-section fade-in" ref={resultsRef}>
+          <div className="scroll-anchor"></div>
+          
+          <div className="results-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+            <h3 style={{ margin: 0, fontSize: '15px', color: '#cbd5e1', letterSpacing: '1px' }}>
+              RECOMMENDED FOR YOUR MOOD & PREFERENCES
+            </h3>
+            <span className="src-ai-badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--accent-cyan)', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
+              <Sparkles size={14} style={{ display: 'inline', marginRight: '6px' }} /> Smart Match Engine
+            </span>
+          </div>
+
+          {bestMatch && (
+            <div className="best-match-card" onClick={() => onMovieSelect(bestMatch)}>
+              <div className="best-match-badge"><Star size={14} fill="currentColor" /> BEST MATCH</div>
+              
+              <div className="bm-content">
+                <div className="bm-poster-area">
+                  {bestMatch.poster ? (
+                    <img src={bestMatch.poster} alt={bestMatch.title} className="bm-poster" />
+                  ) : (
+                    <div className="bm-poster" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#1e293b', color: '#64748b' }}>
+                      <Film size={48} />
+                    </div>
+                  )}
+                  <div className="match-circle">
+                    <svg viewBox="0 0 36 36" className="circular-chart">
+                      <path className="circle-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                      <path className="circle" strokeDasharray={`${bestMatch.movieMindScore || Math.round((parseFloat(bestMatch.rating) || 8.5) * 10)}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <div className="percentage">{bestMatch.movieMindScore || Math.round((parseFloat(bestMatch.rating) || 8.5) * 10)}%<span>MATCH</span></div>
+                  </div>
+                </div>
+                
+                <div className="bm-details">
+                  <h2>{safeString(bestMatch.title, 'Unknown Movie')}</h2>
+                  <div className="bm-meta">
+                    <span>{safeGenres(bestMatch.genres)}</span>
+                    <span className="dot">•</span>
+                    <span>{safeString(bestMatch.year)}</span>
+                    <span className="dot">•</span>
+                    <span>{safeString(bestMatch.runtime)}</span>
+                    <span className="dot">•</span>
+                    <span>{safeString(bestMatch.language)}</span>
+                  </div>
+                  
+                  <div className="bm-rating">
+                    <Star size={16} fill="#F5C518" color="#F5C518" />
+                    <span className="rating-val">{safeString(bestMatch.rating, 'N/A')}/10</span>
+                    <span className="imdb-badge">IMDb</span>
+                  </div>
+
+                  <p className="bm-overview">{safeString(bestMatch.overview, 'No overview available for this movie. Explore details to learn more.')}</p>
+                  
+                  <div className="bm-tags">
+                    <span className="tag"><Check size={14} className="text-cyan" /> High intensity</span>
+                    <span className="tag"><Check size={14} className="text-cyan" /> Thrilling narrative</span>
+                    <span className="tag"><Check size={14} className="text-violet" /> Matches your taste</span>
+                    {bestMatch.language && <span className="tag"><Check size={14} className="text-cyan" /> {bestMatch.language} cinema</span>}
+                  </div>
+
+                  <div className="bm-actions">
+                    <button className="btn-primary" onClick={(e) => {
+                      e.stopPropagation();
+                      const trailerUrl = bestMatch.trailer?.url;
+                      if (trailerUrl) {
+                        bestMatch.trailer.embedUrl ? openTrailer(trailerUrl) : window.open(trailerUrl, '_blank');
+                      }
+                    }}>
+                      <Play size={18} fill="currentColor" /> Watch Trailer
+                    </button>
+                    <button className="btn-secondary" onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      if (bestMatch) {
+                        onMovieSelect?.(bestMatch);
+                      }
+                    }}>
+                      View Details
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            {renderSkeleton()}
+          )}
+
+          {moreMatches.length > 0 && (
+            <div className="more-matches-area">
+              <h3>MORE PERFECT MATCHES</h3>
+              <div className="matches-grid">
+                {moreMatches.map(movie => (
+                  <SearchResultCard key={movie.movieId || movie.id} movie={movie} onMovieSelect={onMovieSelect} onWatchTrailer={openTrailer} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {differentStyle.length > 0 && (
+            <div className="more-matches-area mt-8">
+              <h3>SAME MOOD, DIFFERENT STYLE</h3>
+              <div className="matches-grid">
+                {differentStyle.map(movie => (
+                  <SearchResultCard key={movie.movieId || movie.id} movie={movie} onMovieSelect={onMovieSelect} onWatchTrailer={openTrailer} />
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="ai-explanation-footer">
+            <div className="ai-brand">
+              <Sparkles size={28} className="text-violet" />
+              <div>
+                <h4>AI EXPLANATION</h4>
+                <p>We analyzed your past watches, liked genres and today's mood to find movies that will give you the perfect experience.</p>
+              </div>
+            </div>
+            <div className="ai-stats">
+              <div className="stat">
+                <h5 className="text-cyan">1,247</h5>
+                <span>Movies Analyzed</span>
+              </div>
+              <div className="stat">
+                <h5 className="text-violet">89</h5>
+                <span>Personal Signals</span>
+              </div>
+              <div className="stat">
+                <h5 className="text-cyan">12</h5>
+                <span>AI Models Used</span>
+              </div>
+              <div className="stat">
+                <h5 className="text-cyan">0.92s</h5>
+                <span>Thinking Time</span>
+              </div>
+            </div>
           </div>
         </section>
       )}
 
-      {!loading && hasSearched && (
-        <section className="dataset-movie-results">
-          
-          {movies.length > 0 ? (
-            <div className="results-section">
-              <div className="results-title">
-                <div>
-                  <span className="results-label internal-label">Found across the MovieMind universe.</span>
-                  <h2>SEARCH RESULTS</h2>
-                </div>
-                <span className="movie-count">{movies.length} movies</span>
-              </div>
-              <div className="dataset-movie-grid new-search-grid">
-                {movies.map((movie, index) => (
-                  <SearchResultCard 
-                    key={`${movie?.movieId || movie?.id || movie?.imdbID || movie?.title || index}`}
-                    movie={movie}
-                    onMovieSelect={onMovieSelect}
-                    onWatchTrailer={openTrailer}
-                  />
-                ))}
-              </div>
-            </div>
-          ) : (
-            <div className="dataset-empty">
-              <Film size={35} />
-              <h3>No movies found</h3>
-              <p>Try another movie name or keyword.</p>
-            </div>
-          )}
+
+
+      {!loading && !hasSearched && (
+        <section className="discovery-step-section initial-search-prompt">
+          <div className="dataset-empty" style={{ padding: '40px 20px', border: '1px border rgba(255,255,255,0.08)' }}>
+            <Search size={44} className="text-cyan" style={{ marginBottom: '16px' }} />
+            <h2>Search for movies, actors, genres or languages</h2>
+            <p>Type in the search bar above or choose a mood to discover curated cinema.</p>
+          </div>
         </section>
       )}
 
-      <TrailerModal 
-        isOpen={isTrailerOpen} 
-        trailerUrl={currentTrailerUrl} 
-        onClose={closeTrailer} 
-      />
+      {!loading && searchError && (
+        <div className="dataset-empty">
+          <Film size={40} className="text-red" />
+          <h2>Search is temporarily unavailable</h2>
+          <p>Unable to fetch search results at this moment.</p>
+          <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
+            <button className="btn-secondary" onClick={() => searchMovies(globalQuery || 'best movies')}>
+              <RefreshCw size={16} /> Try Again
+            </button>
+            {onBack && (
+              <button className="btn-primary" onClick={onBack}>
+                <Home size={16} /> Back to Home
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <TrailerModal isOpen={isTrailerOpen} trailerUrl={currentTrailerUrl} onClose={closeTrailer} />
     </div>
   );
 }

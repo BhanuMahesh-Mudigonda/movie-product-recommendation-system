@@ -1,78 +1,152 @@
-.transition-container {
+/* CINEMATIC PORTAL ENTRY TRANSITION CSS */
+
+.cinematic-portal-transition-container {
   position: fixed;
   inset: 0;
+  z-index: 9999;
+  background: #040508;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: var(--bg-dark);
-  z-index: 9999;
   overflow: hidden;
+  font-family: var(--font-main, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
 }
 
-.transition-bg {
+.portal-focus-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at center, rgba(225, 29, 72, 0.1) 0%, var(--bg-dark) 70%);
+  background: radial-gradient(circle at 50% 50%, rgba(4, 5, 8, 0.4) 0%, rgba(4, 5, 8, 0.95) 90%);
+  pointer-events: none;
 }
 
-.film-strip-container {
-  width: 100%;
-  height: 200px;
-  overflow: hidden;
-  display: flex;
-  align-items: center;
+.portal-film-grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 0);
+  background-size: 3px 3px;
+  opacity: 0.35;
+  pointer-events: none;
 }
 
-.film-strip {
-  display: flex;
-  gap: 20px;
-  width: fit-content;
+.film-light-projection {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 700px;
+  height: 700px;
+  background: radial-gradient(circle, rgba(0, 242, 255, 0.14) 0%, rgba(255, 107, 53, 0.09) 50%, transparent 75%);
+  filter: blur(50px);
+  pointer-events: none;
 }
 
-.frame {
-  width: 300px;
-  height: 170px;
-  background: #111;
-  border: 4px solid #222;
-  border-radius: 8px;
+.portal-transition-content {
   position: relative;
-  overflow: hidden;
+  z-index: 10;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 20px rgba(0,0,0,0.8);
+  text-align: center;
+  padding: 40px;
 }
 
-.frame::before, .frame::after {
-  content: '';
+/* STEP 3: MOVIE REEL ACTIVATION */
+.portal-movie-reel-box {
+  margin-bottom: 24px;
+}
+
+.metallic-projector-reel {
+  width: 110px;
+  height: 110px;
+  filter: drop-shadow(0 0 25px rgba(0, 242, 255, 0.45));
+  animation: rotateReelAccelerate 2.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+@keyframes rotateReelAccelerate {
+  0% { transform: rotate(0deg); }
+  60% { transform: rotate(360deg); }
+  100% { transform: rotate(720deg); }
+}
+
+.projector-reel-svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* STEP 5: SEQUENTIAL AI STATUS TYPOGRAPHY */
+.portal-status-heading {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #00f2ff;
+  margin-bottom: 8px;
+  text-shadow: 0 0 15px rgba(0, 242, 255, 0.4);
+  height: 28px;
+}
+
+.portal-status-sub {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+.portal-progress-bar {
+  width: 280px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 16px;
+}
+
+.portal-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #00f2ff, #ff6b35);
+  border-radius: 4px;
+  transition: width 0.4s ease-out;
+}
+
+/* THREE MINIMAL ANIMATED LOADING DOTS */
+.portal-dots-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot-pulse {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.2);
+  transition: background 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dot-pulse.active {
+  background: #00f2ff;
+  box-shadow: 0 0 10px #00f2ff;
+}
+
+/* STEP 6: FINAL PORTAL LIGHT SWEEP */
+.final-portal-light-sweep {
   position: absolute;
   top: 0;
-  bottom: 0;
-  width: 15px;
-  background-image: linear-gradient(to bottom, transparent 10px, #222 10px, #222 15px, transparent 15px);
-  background-size: 100% 20px;
-}
-
-.frame::before { left: -15px; }
-.frame::after { right: -15px; }
-
-.highlight-frame {
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 30px rgba(225, 29, 72, 0.4);
-}
-
-.frame-logo {
-  font-size: 4rem;
-  font-weight: 900;
-  color: var(--text-primary);
-  text-shadow: 0 0 20px var(--accent-cyan);
-}
-
-.zoom-overlay {
-  position: absolute;
-  width: 100px;
-  height: 100px;
-  background: var(--bg-dark);
-  border-radius: 50%;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.15) 50%, transparent 100%);
+  animation: sweepPortalLight 2.6s ease-in-out forwards;
   pointer-events: none;
+}
+
+@keyframes sweepPortalLight {
+  0% { left: -100%; }
+  50% { left: 0%; }
+  100% { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .metallic-projector-reel, .dot-pulse, .final-portal-light-sweep {
+    animation: none !important;
+  }
 }

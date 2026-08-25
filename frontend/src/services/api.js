@@ -1,7 +1,7 @@
-import { normalizeMovie } from '../utils/movieUtils';
+import { normalizeMovie } from '../utils/movieUtils.js';
 
 const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || '/api';
+  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/api';
 
 const fetchOptions = {
   headers: {
@@ -10,26 +10,26 @@ const fetchOptions = {
 };
 
 async function safeFetch(url) {
-
   try {
-
-    const res = await fetch(
-      url,
-      fetchOptions
-    );
-
+    const res = await fetch(url, fetchOptions);
     const text = await res.text();
 
-    try {
+    if (!res.ok) {
+      console.error(
+        `API Error ${res.status} for ${url}:`,
+        text.substring(0, 300)
+      );
 
+      return url.includes('analytics')
+        ? { stats: {}, charts: {} }
+        : null;
+    }
+
+    try {
       const parsed = JSON.parse(text);
 
       if (Array.isArray(parsed)) {
-
-        return parsed.map(
-          normalizeMovie
-        );
-
+        return parsed.map(normalizeMovie);
       }
 
       if (
@@ -37,100 +37,53 @@ async function safeFetch(url) {
         typeof parsed === 'object' &&
         !url.includes('analytics')
       ) {
-
-        const normalizedObj = {
-          ...parsed
-        };
+        const normalizedObj = { ...parsed };
 
         for (const key in normalizedObj) {
-
-          if (
-            Array.isArray(
-              normalizedObj[key]
-            )
-          ) {
-
+          if (Array.isArray(normalizedObj[key])) {
             normalizedObj[key] =
-              normalizedObj[key].map(
-                normalizeMovie
-              );
-
-          }
-
-          else if (
+              normalizedObj[key].map(normalizeMovie);
+          } else if (
             normalizedObj[key] &&
             typeof normalizedObj[key] === 'object' &&
-            !Array.isArray(
-              normalizedObj[key]
-            ) &&
             (
               normalizedObj[key].title ||
               normalizedObj[key].Title
             )
           ) {
-
             normalizedObj[key] =
-              normalizeMovie(
-                normalizedObj[key]
-              );
-
+              normalizeMovie(normalizedObj[key]);
           }
-
         }
 
-        if (
-          normalizedObj.similar_movies
-        ) {
-
+        if (normalizedObj.similar_movies) {
           normalizedObj.similar_movies =
-            normalizedObj.similar_movies.map(
-              normalizeMovie
-            );
-
+            normalizedObj.similar_movies.map(normalizeMovie);
         }
 
         return normalizedObj;
-
       }
 
       return parsed;
 
-    }
-
-    catch (e) {
-
+    } catch (e) {
       console.warn(
-        'API returned non-JSON:',
-        text.substring(0, 100)
+        'API returned invalid JSON:',
+        text.substring(0, 200)
       );
 
       return url.includes('analytics')
-        ? {
-            stats: {},
-            charts: {}
-          }
-        : [];
-
+        ? { stats: {}, charts: {} }
+        : null;
     }
 
-  }
-
-  catch (err) {
-
-    console.error(
-      'Network Error:',
-      err
-    );
+  } catch (err) {
+    console.error('Network Error:', url, err);
 
     return url.includes('analytics')
-      ? {
-          stats: {},
-          charts: {}
-        }
-      : [];
-
+      ? { stats: {}, charts: {} }
+      : null;
   }
-
 }
 
 export const api = {
@@ -280,6 +233,50 @@ export const api = {
 
     return await safeFetch(
       `${API_BASE_URL}/analytics`
+    );
+
+  },
+
+  // ======================================================
+  // MOVIEMIND GLOBAL CATALOGUE — 108K+ MOVIES
+  // ======================================================
+
+  async searchCatalogueMovies(
+    query,
+    limit = 20
+  ) {
+
+    return await safeFetch(
+      `${API_BASE_URL}/api/catalogue/search?q=${encodeURIComponent(query)}&limit=${limit}`
+    );
+
+  },
+
+  async getCatalogueMovie(
+    movieId
+  ) {
+
+    return await safeFetch(
+      `${API_BASE_URL}/api/catalogue/movie/${movieId}`
+    );
+
+  },
+
+  async getCatalogueSimilarMovies(
+    movieId,
+    limit = 12
+  ) {
+
+    return await safeFetch(
+      `${API_BASE_URL}/api/catalogue/movie/${movieId}/similar?limit=${limit}`
+    );
+
+  },
+
+  async getCatalogueStats() {
+
+    return await safeFetch(
+      `${API_BASE_URL}/api/catalogue/stats`
     );
 
   }

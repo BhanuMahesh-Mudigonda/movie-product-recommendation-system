@@ -7,9 +7,10 @@ import {
 import {
   Database, ShieldCheck, PieChart as PieChartIcon, BrainCircuit, Network, Route, ChevronRight, Activity
 } from 'lucide-react';
+import BackButton from '../components/BackButton';
 import './Insights.css';
 
-export default function Insights() {
+export default function Insights({ onBack }) {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -37,6 +38,7 @@ export default function Insights() {
 
   return (
     <div className="insights-page">
+      {onBack && <BackButton onBack={onBack} />}
       
       <header className="insights-hero">
         <div className="hero-glow"></div>

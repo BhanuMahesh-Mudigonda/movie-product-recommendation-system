@@ -6,44 +6,48 @@ venv/
 __pycache__/
 *.py[cod]
 
-# Node modules
+# Node modules & build artifacts
 node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
 
 # Environment variables / secrets
 .env
 .env.*
-
-# OS files
-.DS_Store
-
-# Jupyter
-.ipynb_checkpoints/
-
-# Local secrets and environment backups
 *.env
 *.env.*
 *.ev
 
-# Large datasets / raw data
-ml/movies/
-ml/data/
-
-# Large ML artifacts - handle separately if needed
-ml/models/item_knn.pkl
-
-# Development backup files
-*.backup
-*.backup_*
-*.save
-*.before_*
-
-# Development backup files
-*.backup
-*.backup_*
-*.save
-*.before_*
-
-# macOS junk files
+# OS & Mac files
 .DS_Store
 __MACOSX/
 ._*
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Large raw datasets, zips & models (ignored for fast clean git push)
+ml/movies/
+ml/data/
+ml/backend/data/
+ml/models/
+backend/data/tmdb_raw/
+*.zip
+*.parquet
+
+# Development backup files & temporary snapshots
+*.backup
+*.backup_*
+*.save
+*.before_*
+backup_before_*
+frontend/backup_before_*
+frontend/src/components/MovieDetailsPanel.backup.jsx
+frontend/src/services/*_before_*
+ml/backend/*_before_*
+ml/backend/discovery_engine_v*
+
+# Antigravity IDE temporary artifacts
+.antigravity/
+.brain/

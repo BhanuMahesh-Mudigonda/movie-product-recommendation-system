@@ -1,0 +1,35 @@
+/* SUBTLE AMBIENT CURSOR ACCENT */
+
+.cinematic-cursor-root {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10000;
+}
+
+.cursor-ambient-dot {
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  width: 8px;
+  height: 8px;
+  background: #00f2ff;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #00f2ff;
+  opacity: 0.6;
+  will-change: transform;
+  transition: opacity 0.25s ease, transform 0.25s ease, background 0.25s ease;
+}
+
+.cursor-ambient-dot.cursor-active-glow {
+  opacity: 1;
+  transform: scale(2);
+  background: #ff6b35;
+  box-shadow: 0 0 15px #ff6b35, 0 0 25px #00f2ff;
+}
+
+@media (max-width: 768px) {
+  .cinematic-cursor-root {
+    display: none;
+  }
+}

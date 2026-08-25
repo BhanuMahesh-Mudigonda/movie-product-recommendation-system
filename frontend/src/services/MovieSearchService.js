@@ -1,5 +1,7 @@
 import { InternalMovieProvider } from './providers/InternalMovieProvider';
 import { GlobalMovieProvider } from './providers/GlobalMovieProvider';
+import { api } from './api';
+import { movieMindRanker } from './movieMindRanker';
 
 class MovieSearchService {
   constructor() {
@@ -74,12 +76,12 @@ class MovieSearchService {
     }
 
     return {
-      movieId: movie.movieId || movie.id || movie.imdbID,
+      movieId: movie.moviemind_id || movie.movieId || movie.id || movie.imdbID,
       title,
       original_title: movie.original_title || title,
-      poster: (movie.poster && movie.poster !== 'N/A') ? movie.poster : ((movie.Poster && movie.Poster !== 'N/A') ? movie.Poster : null),
-      backdrop: movie.backdrop || null,
-      rating: movie.rating || movie.imdbRating || movie.vote_average || movie.avg_rating || null,
+      poster: movie.poster_url || ((movie.poster && movie.poster !== 'N/A') ? movie.poster : ((movie.Poster && movie.Poster !== 'N/A') ? movie.Poster : null)),
+      backdrop: movie.backdrop || movie.backdrop_url || null,
+      rating: movie.rating ?? movie.imdbRating ?? movie.vote_average ?? movie.avg_rating ?? null,
       year,
       language: movie.language || movie.Language || movie.language_code || movie.original_language || '',
       genres,
@@ -103,51 +105,264 @@ class MovieSearchService {
     };
   }
 
-  async search(query) {
+  async search(query, searchIntent = null) {
     const cleanQuery = String(query || '').trim();
+
     if (!cleanQuery) return [];
 
-    const internalResults = await this.internalProvider.search(cleanQuery);
-    if (internalResults.length > 0) {
-      return internalResults.map(m => this._normalize(m));
-    }
+    try {
+      // ==================================================
+      // PRIMARY: MovieMind Global Catalogue
+      // ==================================================
+      const catalogueResponse =
+        await api.searchCatalogueMovies(
+          cleanQuery,
+          20
+        );
 
-    const globalResults = await this.globalProvider.search(cleanQuery);
-    return (globalResults || []).map(m => this._normalize(m));
+      const catalogueMovies =
+        catalogueResponse?.movies || [];
+
+      if (
+        Array.isArray(catalogueMovies) &&
+        catalogueMovies.length > 0
+      ) {
+        const normalizedMovies =
+          catalogueMovies
+            .map(movie => this._normalize(movie))
+            .filter(Boolean);
+
+        return movieMindRanker.rankMovies(
+          normalizedMovies, searchIntent
+        );
+      }
+
+      // ==================================================
+      // FALLBACK: Existing MovieMind Search
+      // Existing recommendation/search logic remains intact
+      // ==================================================
+      const results =
+        await this.internalProvider.search(
+          cleanQuery
+        );
+
+      return (results || []).map(movie =>
+        this._normalize(movie)
+      );
+
+    } catch (error) {
+
+      console.error(
+        'MovieMind catalogue search error:',
+        error
+      );
+
+      // Safe fallback — existing system remains functional
+      try {
+
+        const results =
+          await this.internalProvider.search(
+            cleanQuery
+          );
+
+        const normalizedMovies =
+        (results || [])
+          .map(movie => this._normalize(movie))
+          .filter(Boolean);
+
+      return movieMindRanker.rankMovies(
+        normalizedMovies, searchIntent
+      );
+
+      } catch (fallbackError) {
+
+        console.error(
+          'MovieMind fallback search error:',
+          fallbackError
+        );
+
+        return [];
+      }
+    }
   }
 
   async enrichMovieMetadata(movie) {
     if (!movie) return null;
+
+    // --------------------------------------------------
+    // BASE NORMALIZATION
+    // Keep existing MovieMind/model data untouched
+    // --------------------------------------------------
     let norm = this._normalize(movie);
 
-    if (norm.isExternal) return norm;
-    if (norm.poster && String(norm.poster).startsWith('http')) return norm;
+    if (!norm) return null;
+
+    // --------------------------------------------------
+    // CHECK WHAT INFORMATION IS ACTUALLY MISSING
+    // Poster alone must NOT stop enrichment.
+    // --------------------------------------------------
+    const needsEnrichment =
+      !norm.poster ||
+      !norm.overview ||
+      !norm.director ||
+      !norm.backdrop ||
+      !norm.cast?.length ||
+      !norm.runtime ||
+      !norm.trailer?.url ||
+      norm.trailer?.status === 'not_found';
+
+    // Already complete enough → preserve existing data
+    if (!needsEnrichment) {
+      return norm;
+    }
 
     try {
-      const searchQuery = norm.original_title || norm.title;
-      if (!searchQuery) return norm;
+      const searchQuery =
+        norm.original_title ||
+        norm.title;
 
-      const globalResults = await this.globalProvider.search(searchQuery);
-      if (globalResults && globalResults.length > 0) {
-        const match = globalResults[0];
-        const enrichedRaw = {
-          ...norm.originalData,
-          poster: match.poster || match.Poster || norm.poster,
-          backdrop: match.backdrop || norm.backdrop,
-          rating: match.rating || match.imdbRating || norm.rating,
-          language: match.language || match.Language || norm.language,
-          genres: match.genres || match.Genre || norm.originalData.genres,
-          overview: match.overview || norm.overview,
-          cast: match.cast || match.Actors || norm.originalData.cast,
-          director: match.director || match.Director || norm.director,
-          trailer: match.trailer || norm.originalData.trailer,
-          runtime: match.runtime || match.Runtime || norm.runtime
-        };
-        return this._normalize(enrichedRaw);
+      if (!searchQuery) {
+        return norm;
       }
-      return norm;
+
+      // --------------------------------------------------
+      // GLOBAL METADATA LOOKUP
+      // Add missing information only.
+      // Never overwrite strong MovieMind/model data.
+      // --------------------------------------------------
+      const globalResults =
+        await this.globalProvider.search(
+          searchQuery
+        );
+
+      if (
+        !Array.isArray(globalResults) ||
+        globalResults.length === 0
+      ) {
+        return norm;
+      }
+
+      const match = globalResults[0];
+
+      // --------------------------------------------------
+      // ADDITIVE MERGE
+      // Existing MovieMind data has priority.
+      // External data only fills gaps.
+      // --------------------------------------------------
+      const enrichedRaw = {
+        ...norm.originalData,
+
+        movieId:
+          norm.movieId,
+
+        title:
+          norm.title,
+
+        original_title:
+          norm.original_title,
+
+        poster:
+          norm.poster ||
+          match.poster ||
+          match.Poster ||
+          match.poster_url ||
+          null,
+
+        backdrop:
+          norm.backdrop ||
+          match.backdrop ||
+          match.backdrop_url ||
+          match.backdrop_path ||
+          null,
+
+        rating:
+          norm.rating ??
+          match.rating ??
+          match.imdbRating ??
+          match.vote_average ??
+          null,
+
+        year:
+          norm.year ||
+          match.year ||
+          match.Year ||
+          match.release_year ||
+          '',
+
+        language:
+          norm.language ||
+          match.language ||
+          match.Language ||
+          match.original_language ||
+          '',
+
+        genres:
+          norm.genres ||
+          match.genres ||
+          match.genre ||
+          match.Genre ||
+          '',
+
+        overview:
+          norm.overview ||
+          match.overview ||
+          match.plot ||
+          match.Plot ||
+          match.description ||
+          null,
+
+        cast:
+          norm.cast?.length
+            ? norm.cast
+            : (
+                match.cast ||
+                match.Actors ||
+                match.actors ||
+                []
+              ),
+
+        director:
+          norm.director ||
+          match.director ||
+          match.Director ||
+          null,
+
+        runtime:
+          norm.runtime ||
+          match.runtime ||
+          match.Runtime ||
+          null,
+
+        trailer:
+          (
+            norm.trailer?.status !== 'not_found' &&
+            norm.trailer?.url
+          )
+            ? norm.trailer
+            : (
+                match.trailer ||
+                match.trailer_url ||
+                null
+              ),
+
+        recommendation:
+          norm.recommendation,
+
+        isExternal:
+          norm.isExternal
+      };
+
+      return this._normalize(enrichedRaw);
+
     } catch (error) {
-      console.error('Failed to enrich metadata:', error);
+
+      console.error(
+        'Deep metadata enrichment failed:',
+        error
+      );
+
+      // Safe fallback:
+      // Existing MovieMind movie always remains usable.
       return norm;
     }
   }

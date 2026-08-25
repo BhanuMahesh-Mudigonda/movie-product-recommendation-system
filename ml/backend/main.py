@@ -1,3 +1,12 @@
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parents[2]
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
+from catalogue_engine import catalogue_engine
+from discovery_engine import search_discovery_movies
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
@@ -5,6 +14,14 @@ import pandas as pd
 import numpy as np
 from pathlib import Path
 import re
+
+from ml.intelligence.metadata_merger import merge_movie_metadata
+from ml.intelligence.context_recommendation_engine import (
+    rank_movies_by_context
+)
+from ml.intelligence.hybrid_recommendation_engine import (
+    rank_movies_hybrid
+)
 
 try:
     from omdb_service import search_movies, get_movie_details
@@ -42,6 +59,14 @@ BASE_DIR = BACKEND_DIR.parent
 MODEL_DIR = BASE_DIR / "models"
 FEATURED_METADATA_PATH = BACKEND_DIR / "model_data" / "featured_movie_metadata.pkl"
 
+MULTILINGUAL_CATALOGUE_PATH = (
+    BASE_DIR.parent
+    / "backend"
+    / "data"
+    / "catalogue"
+    / "moviemind_multilingual_catalogue.csv"
+)
+
 
 # =========================================================
 # FASTAPI
@@ -61,6 +86,13 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+# Authentication Router
+try:
+    from auth.router import router as auth_router
+except ImportError:
+    from ml.backend.auth.router import router as auth_router
+
+app.include_router(auth_router)
 
 # =========================================================
 # LOAD MODELS
@@ -131,6 +163,21 @@ featured_metadata = pd.read_pickle(MODEL_DIR / "featured_movie_metadata.pkl")
 
 featured_metadata = pd.read_pickle(
     FEATURED_METADATA_PATH
+)
+
+# =========================================================
+# LOAD MULTILINGUAL MOVIEMIND CATALOGUE
+# English + Hindi + Tamil + Telugu
+# =========================================================
+
+multilingual_catalogue = pd.read_csv(
+    MULTILINGUAL_CATALOGUE_PATH,
+    engine="python"
+)
+
+print(
+    "MULTILINGUAL CATALOGUE:",
+    len(multilingual_catalogue)
 )
 
 print("=" * 50)
@@ -2224,51 +2271,448 @@ def browse_movies(
 # SEARCH
 # =========================================================
 
+
 @app.get("/movies/search")
 def search_movies_api(
     q: str,
-    limit: int = 20
+    limit: int = 20,
+    language: str = None
 ):
 
     if not q or not q.strip():
         return []
 
-    query = q.lower().strip()
-    results = []
+    query = q.strip().lower()
+    catalogue = multilingual_catalogue.copy()
+
+    if language and language.strip().lower() != "all":
+        catalogue = catalogue[
+            catalogue["original_language"]
+            .astype(str)
+            .str.lower()
+            == language.strip().lower()
+        ]
 
     # =====================================================
-    # MOVIEMIND FEATURED CATALOGUE SEARCH
-    # Search ONLY movies available in our curated catalogue
+    # SMART SEARCH RANKING
+    # Priority:
+    # 1. Exact title
+    # 2. Title starts with query
+    # 3. Title contains query
+    # 4. Original title matches
+    # 5. Genre matches
     # =====================================================
 
-    title_col = "title"
+    title_series = catalogue["title"].astype(str).str.lower()
+    original_series = catalogue["original_title"].astype(str).str.lower()
 
-    featured_matches = featured_catalogue[
-        featured_catalogue[title_col]
-        .astype(str)
-        .str.lower()
-        .str.contains(
+    # 1. Exact title match
+    exact_matches = catalogue[
+        title_series == query
+    ].copy()
+
+    # 2. Title starts with query
+    starts_with_matches = catalogue[
+        title_series.str.startswith(query, na=False)
+        & (title_series != query)
+    ].copy()
+
+    # 3. Query appears as a separate word in title
+    word_pattern = r"(?<![a-z0-9])" + re.escape(query) + r"(?![a-z0-9])"
+
+    word_matches = catalogue[
+        title_series.str.contains(
+            word_pattern,
+            na=False,
+            regex=True
+        )
+        & ~title_series.str.startswith(query, na=False)
+    ].copy()
+
+    # 4. Original title match
+    original_matches = catalogue[
+        original_series.str.contains(
             query,
             na=False,
             regex=False
         )
     ].copy()
 
-    # Remove duplicate titles
-    featured_matches = featured_matches.drop_duplicates(
-        subset=[title_col],
+    results = pd.concat(
+        [
+            exact_matches,
+            starts_with_matches,
+            word_matches,
+            original_matches
+        ],
+        ignore_index=True
+    )
+
+    results = results.drop_duplicates(
+        subset=["tmdb_id"],
         keep="first"
     )
 
-    for _, row in featured_matches.head(limit).iterrows():
+    # =====================================================
+    # FEATURED METADATA FALLBACK
+    # Used when movie is not available in multilingual catalogue
+    # =====================================================
 
-        movie = normalize_movie_response(
-            row.to_dict()
+    if results.empty:
+
+        featured = featured_metadata.copy()
+
+        if language and language.strip().lower() != "all":
+
+            language_query = language.strip().lower()
+
+            if "Language" in featured.columns:
+                featured = featured[
+                    featured["Language"]
+                    .astype(str)
+                    .str.lower()
+                    .str.contains(
+                        language_query,
+                        na=False,
+                        regex=False
+                    )
+                ]
+
+        featured_title = (
+            featured["Title"]
+            .astype(str)
+            .str.lower()
         )
 
-        results.append(movie)
+        featured_matches = featured[
+            featured_title.str.contains(
+                query,
+                na=False,
+                regex=False
+            )
+        ].copy()
 
-    return sanitize_records(results)
+        if featured_matches.empty:
+
+            # =====================================================
+            # DISCOVERY ENGINE FALLBACK
+            # Handles mood / theme / natural-language searches
+            # =====================================================
+
+            try:
+
+                discovery_result = search_discovery_movies(
+                    query=q.strip(),
+                    featured_metadata=featured_metadata,
+                    multilingual_catalogue=multilingual_catalogue,
+                    language=language,
+                    limit=limit
+                )
+
+                discovery_movies = (
+                    discovery_result.get("results", [])
+                )
+
+                if discovery_movies:
+
+                    return sanitize_records(
+                        discovery_movies
+                    )
+
+            except Exception as error:
+
+                print(
+                    "Discovery search fallback error:",
+                    error
+                )
+
+            return []
+
+        response = []
+
+        for _, row in featured_matches.head(limit).iterrows():
+
+            title = safe_value(row.get("Title"))
+            year = safe_value(row.get("Year"))
+
+            poster = safe_value(row.get("Poster"))
+
+            imdb_rating = pd.to_numeric(
+                row.get("imdbRating", 0),
+                errors="coerce"
+            )
+
+            if pd.isna(imdb_rating):
+                imdb_rating = 0
+
+            response.append({
+                "tmdb_id": None,
+                "movieId": safe_value(row.get("movieId")),
+                "title": title,
+                "original_title": title,
+                "year": str(year) if year else None,
+                "release_date": None,
+                "genres": safe_value(row.get("Genre")),
+                "rating": round(float(imdb_rating), 1),
+                "vote_average": round(float(imdb_rating), 1),
+                "vote_count": 0,
+                "popularity": 0,
+                "language": safe_value(row.get("Language")),
+                "original_language": None,
+                "overview": safe_value(row.get("Plot")),
+                "poster": poster,
+                "poster_url": poster
+            })
+
+        return sanitize_records(response)
+
+    results["vote_average"] = pd.to_numeric(
+        results["vote_average"],
+        errors="coerce"
+    ).fillna(0)
+
+    results["vote_count"] = pd.to_numeric(
+        results["vote_count"],
+        errors="coerce"
+    ).fillna(0)
+
+    results["popularity"] = pd.to_numeric(
+        results["popularity"],
+        errors="coerce"
+    ).fillna(0)
+
+    title_exact = (
+        results["title"]
+        .astype(str)
+        .str.lower()
+        .eq(query)
+        .astype(int)
+    )
+
+    title_starts = (
+        results["title"]
+        .astype(str)
+        .str.lower()
+        .str.startswith(query)
+        .astype(int)
+    )
+
+    results["search_score"] = (
+        title_exact * 100
+        + title_starts * 30
+        + results["vote_average"] * 0.45
+        + np.log1p(results["vote_count"]) * 0.35
+        + np.log1p(results["popularity"]) * 0.20
+    )
+
+    results = results.sort_values(
+        "search_score",
+        ascending=False
+    )
+
+    response = []
+
+    for _, row in results.head(limit).iterrows():
+
+        release_date = safe_value(row.get("release_date"))
+        year = str(release_date)[:4] if release_date else None
+
+        response.append({
+            "tmdb_id": int(row["tmdb_id"]),
+            "movieId": None,
+            "title": safe_value(row.get("title")),
+            "original_title": safe_value(row.get("original_title")),
+            "year": year,
+            "release_date": release_date,
+            "genres": safe_value(row.get("genres")),
+            "rating": round(float(row.get("vote_average", 0)), 1),
+            "vote_average": round(float(row.get("vote_average", 0)), 1),
+            "vote_count": int(row.get("vote_count", 0)),
+            "popularity": float(row.get("popularity", 0)),
+            "language": safe_value(row.get("original_language")),
+            "original_language": safe_value(row.get("original_language")),
+            "overview": safe_value(row.get("overview")),
+            "poster": safe_value(row.get("poster_url")),
+            "poster_url": safe_value(row.get("poster_url"))
+        })
+
+    return sanitize_records(response)
+
+
+# =========================================================
+# MULTILINGUAL CATALOGUE MOVIE DETAILS
+# =========================================================
+
+@app.get("/catalogue/movie/{tmdb_id}")
+def get_catalogue_movie(tmdb_id: int):
+
+    match = multilingual_catalogue[
+        multilingual_catalogue["tmdb_id"] == tmdb_id
+    ]
+
+    if match.empty:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
+
+    movie = match.iloc[0].to_dict()
+
+    release_date = safe_value(movie.get("release_date"))
+    year = str(release_date)[:4] if release_date else None
+
+    result = {
+        "tmdb_id": int(movie["tmdb_id"]),
+        "title": safe_value(movie.get("title")),
+        "original_title": safe_value(movie.get("original_title")),
+        "release_date": release_date,
+        "year": year,
+        "genres": safe_value(movie.get("genres")),
+        "vote_average": float(movie.get("vote_average", 0)),
+        "rating": float(movie.get("vote_average", 0)),
+        "vote_count": int(movie.get("vote_count", 0)),
+        "popularity": float(movie.get("popularity", 0)),
+        "original_language": safe_value(movie.get("original_language")),
+        "language": safe_value(movie.get("original_language")),
+        "overview": safe_value(movie.get("overview")),
+        "poster_url": safe_value(movie.get("poster_url")),
+        "poster": safe_value(movie.get("poster_url")),
+        "backdrop": None,
+        "cast": [],
+        "director": None,
+        "trailer": None
+    }
+
+    try:
+        tmdb_details = get_tmdb_movie_details(tmdb_id)
+
+        if tmdb_details:
+            result["backdrop"] = get_backdrop_url(tmdb_details)
+            result["cast"] = extract_cast(tmdb_details)
+            result["director"] = extract_director(tmdb_details)
+            result["trailer"] = extract_trailer(tmdb_details)
+
+    except Exception as e:
+        print("TMDB enrichment error:", e)
+
+    return sanitize_records([result])[0]
+
+
+# =========================================================
+# MULTILINGUAL CATALOGUE SIMILAR MOVIES
+# =========================================================
+
+@app.get("/catalogue/similar/{tmdb_id}")
+def get_catalogue_similar_movies(
+    tmdb_id: int,
+    limit: int = 12
+):
+
+    match = multilingual_catalogue[
+        multilingual_catalogue["tmdb_id"] == tmdb_id
+    ]
+
+    if match.empty:
+        raise HTTPException(
+            status_code=404,
+            detail="Movie not found"
+        )
+
+    movie = match.iloc[0]
+
+    source_genres = str(movie.get("genres", ""))
+    source_language = str(
+        movie.get("original_language", "")
+    )
+
+    genres = {
+        g.strip().lower()
+        for g in source_genres.replace(",", "|").split("|")
+        if g.strip()
+    }
+
+    candidates = multilingual_catalogue[
+        multilingual_catalogue["tmdb_id"] != tmdb_id
+    ].copy()
+
+    def genre_score(value):
+        movie_genres = {
+            x.strip().lower()
+            for x in str(value).replace(",", "|").split("|")
+            if x.strip()
+        }
+
+        return len(genres & movie_genres)
+
+    candidates["genre_score"] = (
+        candidates["genres"].apply(genre_score)
+    )
+
+    candidates["language_score"] = (
+        candidates["original_language"]
+        .astype(str)
+        .eq(source_language)
+        .astype(int)
+    )
+
+    candidates["vote_average"] = pd.to_numeric(
+        candidates["vote_average"],
+        errors="coerce"
+    ).fillna(0)
+
+    candidates["vote_count"] = pd.to_numeric(
+        candidates["vote_count"],
+        errors="coerce"
+    ).fillna(0)
+
+    candidates["popularity"] = pd.to_numeric(
+        candidates["popularity"],
+        errors="coerce"
+    ).fillna(0)
+
+    candidates["similarity_score"] = (
+        candidates["genre_score"] * 10
+        + candidates["language_score"] * 3
+        + candidates["vote_average"] * 0.5
+        + np.log1p(candidates["vote_count"]) * 0.25
+        + np.log1p(candidates["popularity"]) * 0.15
+    )
+
+    candidates = candidates[
+        candidates["genre_score"] > 0
+    ]
+
+    candidates = candidates.sort_values(
+        "similarity_score",
+        ascending=False
+    )
+
+    response = []
+
+    for _, row in candidates.head(limit).iterrows():
+
+        release_date = safe_value(row.get("release_date"))
+        year = str(release_date)[:4] if release_date else None
+
+        response.append({
+            "tmdb_id": int(row["tmdb_id"]),
+            "title": safe_value(row.get("title")),
+            "year": year,
+            "genres": safe_value(row.get("genres")),
+            "rating": round(float(row.get("vote_average", 0)), 1),
+            "vote_average": round(float(row.get("vote_average", 0)), 1),
+            "original_language": safe_value(
+                row.get("original_language")
+            ),
+            "language": safe_value(
+                row.get("original_language")
+            ),
+            "poster_url": safe_value(row.get("poster_url")),
+            "poster": safe_value(row.get("poster_url")),
+            "overview": safe_value(row.get("overview"))
+        })
+
+    return sanitize_records(response)
 
 
 # =========================================================
@@ -2703,6 +3147,169 @@ def recommend(
 
 
 # =========================================================
+# CONTEXT-AWARE HYBRID RECOMMENDATIONS
+# =========================================================
+
+@app.get("/recommend/{user_id}/context")
+def recommend_with_context(
+    user_id: int,
+    context: str,
+    top_k: int = 10,
+    candidate_k: int = 50
+):
+
+    if user_id not in user_id_to_index.index:
+
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    # -----------------------------------------------------
+    # STEP 1: Generate existing SVD recommendation scores
+    # -----------------------------------------------------
+
+    user_index = user_id_to_index[user_id]
+
+    scores = (
+        user_latent_matrix[user_index]
+        @
+        movie_latent_matrix.T
+    )
+
+    top_indices = np.argsort(
+        scores
+    )[::-1]
+
+    # -----------------------------------------------------
+    # STEP 2: Build ML candidate movie list
+    # -----------------------------------------------------
+
+    movies_with_ml_scores = []
+
+    for index in top_indices[:candidate_k]:
+
+        movie_id = int(
+            movies.iloc[index]["movieId"]
+        )
+
+        title = movies.iloc[index]["title"]
+
+        merged_result = merge_movie_metadata(
+            title
+        )
+
+        movie = merged_result.get("movie")
+
+        if not movie:
+            continue
+
+        movie["identity"]["movie_id"] = movie_id
+
+        movies_with_ml_scores.append({
+            "movie": movie,
+            "ml_score": float(
+                scores[index]
+            )
+        })
+
+    # -----------------------------------------------------
+    # STEP 3: Hybrid ranking
+    # -----------------------------------------------------
+
+    ranked_movies = rank_movies_hybrid(
+        movies_with_ml_scores,
+        context,
+        rank_movies_by_context
+    )
+
+    # -----------------------------------------------------
+    # STEP 4: Convert ranked movies to API response
+    # -----------------------------------------------------
+
+    recommendations = []
+
+    for item in ranked_movies[:top_k]:
+
+        movie = item["movie"]
+
+        movie_id = movie["identity"].get(
+            "movie_id"
+        )
+
+        if movie_id is None:
+            continue
+
+        recommendation = enrich_movie_response(
+
+            movie_id=movie_id,
+
+            title=movie["identity"].get(
+                "title"
+            ),
+
+            genres=", ".join(
+                movie["basic_metadata"].get(
+                    "genres",
+                    []
+                )
+            ),
+
+            score=item["hybrid_score"],
+
+            reason=(
+                "Recommended using your personal "
+                "movie preferences and current viewing context."
+            )
+        )
+
+        if recommendation:
+
+            recommendation["ml_score"] = (
+                item["ml_score"]
+            )
+
+            recommendation["context_score"] = (
+                item["context_score"]
+            )
+
+            recommendation["hybrid_score"] = (
+                item["hybrid_score"]
+            )
+
+            recommendation["moviemind_intelligence"] = (
+                movie.get(
+                    "moviemind_intelligence",
+                    {}
+                )
+            )
+
+            recommendations.append(
+                recommendation
+            )
+
+    return {
+
+        "user_id": user_id,
+
+        "context": context,
+
+        "ranking_method": (
+            "SVD + MovieMind Context Intelligence"
+        ),
+
+        "count": len(
+            recommendations
+        ),
+
+        "recommendations": sanitize_records(
+            recommendations
+        )
+
+    }
+
+
+# =========================================================
 # ANALYTICS
 # =========================================================
 
@@ -2987,6 +3594,134 @@ def universal_movie_search(q: str):
 
             print(
                 f"Missing catalogue fallback failed for {clean_query}: {error}"
+            )
+
+        # -------------------------------------------------
+        # FEATURED METADATA FALLBACK
+        # Search locally enriched MovieMind metadata
+        # -------------------------------------------------
+
+        try:
+
+            featured = featured_metadata.copy()
+
+            featured_matches = featured[
+                featured["Title"]
+                .astype(str)
+                .str.lower()
+                .str.contains(
+                    re.escape(clean_query.lower()),
+                    na=False
+                )
+            ].copy()
+
+            if not featured_matches.empty:
+
+                row = (
+                    featured_matches
+                    .iloc[0]
+                    .to_dict()
+                )
+
+                actors_value = (
+                    row.get("Actors")
+                    or ""
+                )
+
+                cast_list = [
+                    x.strip()
+                    for x in str(actors_value).split(",")
+                    if x.strip()
+                ]
+
+                movie = {
+                    "movieId":
+                        row.get("movieId"),
+
+                    "imdbID":
+                        row.get("imdbID"),
+
+                    "title":
+                        row.get("Title")
+                        or clean_query,
+
+                    "Title":
+                        row.get("Title")
+                        or clean_query,
+
+                    "year":
+                        row.get("Year"),
+
+                    "Year":
+                        row.get("Year"),
+
+                    "poster":
+                        row.get("Poster"),
+
+                    "Poster":
+                        row.get("Poster"),
+
+                    "rating":
+                        row.get("imdbRating"),
+
+                    "imdbRating":
+                        row.get("imdbRating"),
+
+                    "voteCount":
+                        row.get("imdbVotes"),
+
+                    "genre":
+                        row.get("Genre"),
+
+                    "Genre":
+                        row.get("Genre"),
+
+                    "runtime":
+                        row.get("Runtime"),
+
+                    "overview":
+                        row.get("Plot"),
+
+                    "plot":
+                        row.get("Plot"),
+
+                    "director":
+                        row.get("Director"),
+
+                    "cast":
+                        cast_list,
+
+                    "Actors":
+                        row.get("Actors"),
+
+                    "Language":
+                        row.get("Language"),
+
+                    "Country":
+                        row.get("Country"),
+
+                    "trailer":
+                        None,
+
+                    "recommendationReason":
+                        "Movie details loaded from MovieMind enriched metadata.",
+
+                    "datasetAvailable":
+                        False
+                }
+
+                return sanitize_records([
+                    {
+                        "query": clean_query,
+                        "found": True,
+                        "movie": movie
+                    }
+                ])[0]
+
+        except Exception as error:
+
+            print(
+                f"Featured metadata fallback failed for {clean_query}: {error}"
             )
 
         # -------------------------------------------------
@@ -3329,3 +4064,80 @@ def universal_movie_search(q: str):
         }
     ])[0]
 
+# ============================================================
+# MOVIEMIND MASTER CATALOGUE APIs
+# 108,143 MOVIE UNIVERSE
+# ============================================================
+
+@app.get("/api/catalogue/search")
+def catalogue_search(q: str = "", limit: int = 20):
+
+    q = q.strip()
+
+    if not q:
+        return {
+            "success": True,
+            "query": q,
+            "count": 0,
+            "movies": []
+        }
+
+    limit = max(1, min(limit, 50))
+
+    movies = catalogue_engine.search_movies(
+        q,
+        limit=limit
+    )
+
+    return {
+        "success": True,
+        "query": q,
+        "count": len(movies),
+        "movies": movies
+    }
+
+
+@app.get("/api/catalogue/movie/{movie_id}")
+def catalogue_movie(movie_id: int):
+
+    movie = catalogue_engine.get_movie(movie_id)
+
+    if not movie:
+        return {
+            "success": False,
+            "message": "Movie not found"
+        }
+
+    return {
+        "success": True,
+        "movie": movie
+    }
+
+
+@app.get("/api/catalogue/movie/{movie_id}/similar")
+def catalogue_similar(movie_id: int, limit: int = 12):
+
+    limit = max(1, min(limit, 30))
+
+    movies = catalogue_engine.get_similar_movies(
+        movie_id,
+        limit=limit
+    )
+
+    return {
+        "success": True,
+        "movie_id": movie_id,
+        "count": len(movies),
+        "movies": movies
+    }
+
+
+@app.get("/api/catalogue/stats")
+def catalogue_stats():
+
+    return {
+        "success": True,
+        "stats": {
+            "total_movies": len(catalogue_engine.movies)
+        }
+    }

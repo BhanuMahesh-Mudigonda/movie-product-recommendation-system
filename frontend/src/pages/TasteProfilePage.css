@@ -1,0 +1,325 @@
+/* TASTEPROFILEPAGE.CSS */
+
+.taste-profile-page {
+  padding: 2.5rem 3.5rem;
+  min-height: 100vh;
+  color: #ffffff;
+  font-family: var(--font-main, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+}
+
+.profile-hero-header {
+  margin-bottom: 2.2rem;
+}
+
+.profile-signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 242, 255, 0.08);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  color: #00f2ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.profile-main-title {
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.profile-subtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  max-width: 600px;
+  margin: 0;
+}
+
+/* CENTRAL PROFILE CARD */
+.central-profile-card {
+  background: radial-gradient(circle at 20% 20%, rgba(0, 242, 255, 0.08) 0%, rgba(255, 107, 53, 0.06) 50%, rgba(6, 9, 18, 0.95) 100%);
+  border: 1px solid rgba(0, 242, 255, 0.25);
+  border-radius: 20px;
+  padding: 28px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.6);
+}
+
+.profile-card-left {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+.user-avatar-large {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00f2ff, #ff6b35);
+  color: #040508;
+  font-size: 1.8rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.4);
+}
+
+.profile-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2ff;
+}
+
+.profile-personality-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  margin: 4px 0;
+}
+
+.profile-user-email {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.profile-card-right {
+  max-width: 440px;
+}
+
+.ai-confidence-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(0, 242, 255, 0.1);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  color: #00f2ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.profile-explanation-quote {
+  font-size: 0.92rem;
+  line-height: 1.6;
+  color: #cbd5e1;
+  font-style: italic;
+  margin: 0;
+}
+
+/* TWO COLUMN GRID */
+.profile-grid-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2.5rem;
+}
+
+.profile-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.box-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2ff;
+  margin: 0 0 20px 0;
+}
+
+/* GENRES BARS */
+.genres-bars-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.genre-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.genre-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.genre-fill {
+  height: 100%;
+  border-radius: 8px;
+  transition: width 0.6s ease;
+}
+
+.genre-fill.action { background: #ff6b35; box-shadow: 0 0 10px #ff6b35; }
+.genre-fill.drama { background: #eab308; box-shadow: 0 0 10px #eab308; }
+.genre-fill.adventure { background: #00f2ff; box-shadow: 0 0 10px #00f2ff; }
+.genre-fill.thriller { background: #ff2a5f; box-shadow: 0 0 10px #ff2a5f; }
+.genre-fill.crime { background: #a855f7; box-shadow: 0 0 10px #a855f7; }
+
+/* STORY PREFERENCES */
+.story-pref-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.story-pref-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 10px 14px;
+  border-radius: 10px;
+}
+
+.pref-bullet {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f2ff;
+}
+
+.pref-title {
+  flex: 1;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #e2e8f0;
+}
+
+.pref-score {
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #00f2ff;
+}
+
+/* VIEWING SIGNALS */
+.signals-section-container {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2ff;
+  margin-bottom: 16px;
+}
+
+.signals-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.signal-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.signal-card-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #00f2ff;
+  margin-bottom: 8px;
+}
+
+.signal-card-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #64748b;
+}
+
+.signal-card-value {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+/* EVOLUTION TIMELINE */
+.evolution-box {
+  margin-bottom: 3rem;
+}
+
+.evolution-timeline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.timeline-node {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+}
+
+.node-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #00f2ff;
+  box-shadow: 0 0 10px #00f2ff;
+  flex-shrink: 0;
+}
+
+.node-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.node-stage {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #00f2ff;
+}
+
+.node-detail {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 2px 0 0 0;
+}
+
+.node-arrow {
+  color: #475569;
+  flex-shrink: 0;
+}
+
+@media (max-width: 1024px) {
+  .central-profile-card, .profile-grid-two, .evolution-timeline {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

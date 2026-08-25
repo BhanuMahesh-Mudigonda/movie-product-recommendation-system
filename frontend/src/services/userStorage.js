@@ -28,13 +28,14 @@ export const userStorage = {
   isFavourite: (movieId) => {
     if (!movieId) return false;
     const favs = getStorage(FAVOURITES_KEY);
-    return favs.some(m => m.movieId === movieId);
+    return Array.isArray(favs) && favs.some(m => m && m.movieId === movieId);
   },
   
   toggleFavourite: (movie) => {
     if (!movie || !movie.movieId) return false;
     const favs = getStorage(FAVOURITES_KEY);
-    const existingIndex = favs.findIndex(m => m.movieId === movie.movieId);
+    if (!Array.isArray(favs)) return false;
+    const existingIndex = favs.findIndex(m => m && m.movieId === movie.movieId);
     
     if (existingIndex >= 0) {
       favs.splice(existingIndex, 1);
@@ -53,13 +54,14 @@ export const userStorage = {
   isInWatchlist: (movieId) => {
     if (!movieId) return false;
     const list = getStorage(WATCHLIST_KEY);
-    return list.some(m => m.movieId === movieId);
+    return Array.isArray(list) && list.some(m => m && m.movieId === movieId);
   },
   
   toggleWatchlist: (movie) => {
     if (!movie || !movie.movieId) return false;
     const list = getStorage(WATCHLIST_KEY);
-    const existingIndex = list.findIndex(m => m.movieId === movie.movieId);
+    if (!Array.isArray(list)) return false;
+    const existingIndex = list.findIndex(m => m && m.movieId === movie.movieId);
     
     if (existingIndex >= 0) {
       list.splice(existingIndex, 1);
@@ -78,9 +80,10 @@ export const userStorage = {
   addToHistory: (movie) => {
     if (!movie || !movie.movieId) return;
     const history = getStorage(HISTORY_KEY);
+    if (!Array.isArray(history)) return;
     
     // Remove if exists to move to top (LRU)
-    const existingIndex = history.findIndex(m => m.movieId === movie.movieId);
+    const existingIndex = history.findIndex(m => m && m.movieId === movie.movieId);
     if (existingIndex >= 0) {
       history.splice(existingIndex, 1);
     }

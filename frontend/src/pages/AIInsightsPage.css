@@ -1,0 +1,352 @@
+/* AIINSIGHTSPAGE.CSS */
+
+.ai-insights-page {
+  padding: 2.5rem 3.5rem;
+  min-height: 100vh;
+  color: #ffffff;
+  font-family: var(--font-main, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+}
+
+.insights-hero-header {
+  margin-bottom: 2.2rem;
+}
+
+.insights-signal-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(0, 242, 255, 0.08);
+  border: 1px solid rgba(0, 242, 255, 0.3);
+  color: #00f2ff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  margin-bottom: 12px;
+}
+
+.insights-main-title {
+  font-size: 2.6rem;
+  font-weight: 900;
+  letter-spacing: 4px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.insights-subtitle {
+  font-size: 0.95rem;
+  color: #94a3b8;
+  max-width: 620px;
+  margin: 0;
+}
+
+.insights-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 2.5rem;
+}
+
+.box-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2ff;
+  margin: 0 0 20px 0;
+}
+
+/* ARCHITECTURE FLOW */
+.architecture-flow-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 8px;
+}
+
+.arch-node {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #cbd5e1;
+  white-space: nowrap;
+}
+
+.arch-node.highlight {
+  border-color: rgba(255, 107, 53, 0.4);
+  color: #ff6b35;
+}
+
+.arch-node.active {
+  background: rgba(0, 242, 255, 0.1);
+  border-color: #00f2ff;
+  color: #00f2ff;
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.3);
+}
+
+.flow-arrow {
+  color: #475569;
+  flex-shrink: 0;
+}
+
+/* METRICS */
+.metrics-section-container {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: 0.85rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2ff;
+  margin-bottom: 16px;
+}
+
+.metrics-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.metric-value {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #00f2ff;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.metric-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+/* PIPELINE STEPS */
+.pipeline-steps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.pipeline-step-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 14px 16px;
+  border-radius: 12px;
+}
+
+.step-number {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #00f2ff;
+}
+
+.step-info h4 {
+  font-size: 0.82rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffffff;
+  margin: 0 0 4px 0;
+}
+
+.step-info p {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* COMPONENTS */
+.components-section-container {
+  margin-bottom: 2.5rem;
+}
+
+.components-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+.component-card {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.component-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #00f2ff;
+  margin-bottom: 10px;
+}
+
+.component-header h4 {
+  font-size: 0.9rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffffff;
+  margin: 0;
+}
+
+.component-desc {
+  font-size: 0.82rem;
+  line-height: 1.5;
+  color: #94a3b8;
+  margin-bottom: 12px;
+}
+
+.component-flow {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #00f2ff;
+  background: rgba(0, 242, 255, 0.06);
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+/* EXPLAINABILITY BARS */
+.explain-sub {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  margin-bottom: 16px;
+}
+
+.signal-bars-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sig-label-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 4px;
+}
+
+.sig-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.sig-fill {
+  height: 100%;
+  background: #00f2ff;
+  box-shadow: 0 0 10px #00f2ff;
+  border-radius: 6px;
+}
+
+/* PERF METRICS */
+.perf-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+}
+
+.perf-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 16px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+}
+
+.perf-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.perf-value {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #ffffff;
+}
+
+/* FUTURE AI BOX */
+.future-ai-box {
+  background: radial-gradient(circle at 10% 10%, rgba(255, 107, 53, 0.08) 0%, rgba(6, 9, 18, 0.95) 100%);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+}
+
+.future-badge {
+  display: inline-block;
+  background: rgba(255, 107, 53, 0.15);
+  border: 1px solid rgba(255, 107, 53, 0.4);
+  color: #ff6b35;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  margin-bottom: 12px;
+}
+
+.future-title {
+  font-size: 1.2rem;
+  font-weight: 900;
+  letter-spacing: 2px;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.future-desc {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: #cbd5e1;
+  margin-bottom: 16px;
+}
+
+.future-flow-chip {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ff6b35;
+  background: rgba(255, 107, 53, 0.08);
+  padding: 8px 14px;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+@media (max-width: 1024px) {
+  .ai-insights-page {
+    padding: 1.8rem;
+  }
+}

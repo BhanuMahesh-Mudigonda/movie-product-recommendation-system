@@ -3,26 +3,45 @@ import { normalizeMovie } from '../../utils/movieUtils';
 
 export class InternalMovieProvider {
   /**
-   * Search the internal MovieMind catalogue
+   * Unified MovieMind search provider.
+   *
+   * Backend handles:
+   * - Featured 161 movies
+   * - Exact title search
+   * - Discovery / semantic search
+   * - Approved TMDB multilingual movies
    */
   async search(query) {
     try {
-      const response = await fetch(`http://127.0.0.1:8000/movies/search?q=${encodeURIComponent(query)}&limit=30`);
-      if (!response.ok) {
-        return [];
-      }
-      
-      let data = await response.json();
-      data = Array.isArray(data) ? data : [];
-      
-      // Normalize and explicitly mark as internal
-      return data.map(movie => ({
-        ...normalizeMovie(movie),
-        isExternal: false,
-        source: 'internal'
-      }));
+      const data = await api.searchMovies(query, 30);
+
+      return (Array.isArray(data) ? data : [])
+        .map(movie => {
+          const normalized = normalizeMovie(movie);
+
+          return {
+            ...normalized,
+
+            // Preserve backend identity
+            source:
+              movie.source ||
+              normalized.source ||
+              'featured',
+
+            // TMDB/discovery movies are external metadata movies.
+            // Featured 161 movies remain ecosystem-native.
+            isExternal:
+              movie.source === 'multilingual' ||
+              movie.source === 'global'
+          };
+        });
+
     } catch (error) {
-      console.error('InternalMovieProvider search error:', error);
+      console.error(
+        'MovieMind search provider error:',
+        error
+      );
+
       return [];
     }
   }

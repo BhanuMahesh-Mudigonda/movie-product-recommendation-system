@@ -1,13 +1,16 @@
+/* HOME.CSS - MOVIEMIND CINEMATIC DISCOVERY FLOW */
+
 .home-page {
   width: 100%;
+  padding-bottom: 4rem;
 }
 
 .home-sections {
-  padding: 0 4rem;
-  margin-top: 1rem;
+  padding: 0 3.5rem;
+  margin-top: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 2.5rem;
+  gap: 3.5rem;
 }
 
 .recs-header {
@@ -18,191 +21,34 @@
 }
 
 .recs-header h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: 2px;
   margin: 0;
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.8rem;
+  color: #ffffff;
 }
 
 .recs-header h2::before {
   content: '';
   display: block;
   width: 4px;
-  height: 24px;
-  background: var(--accent-red, #e11d48);
+  height: 22px;
+  background: #00f2ff;
   border-radius: 4px;
+  box-shadow: 0 0 10px #00f2ff;
 }
 
-.user-id-form {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.5rem 1rem;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+.carousel-skeleton-loader {
+  padding: 20px 0;
 }
 
-.user-id-form label {
-  font-size: 0.85rem;
-  color: #94a3b8;
-  font-weight: 500;
-}
-
-.user-id-form input {
-  width: 60px;
-  background: rgba(0, 0, 0, 0.3);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  color: white;
-  border-radius: 6px;
-  padding: 0.3rem 0.5rem;
-  text-align: center;
-  outline: none;
-}
-
-.user-id-form input:focus {
-  border-color: var(--accent-red, #e11d48);
-}
-
-.user-id-form button {
-  background: var(--accent-red, #e11d48);
-  color: white;
-  border: none;
-  padding: 0.4rem 1rem;
-  border-radius: 6px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.user-id-form button:hover:not(:disabled) {
-  background: #be123c;
-}
-
-.user-id-form button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.category-page {
-  padding: 2rem 4rem;
-}
-
-.category-page-title {
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0 0 2rem 0;
-  display: flex;
-  align-items: center;
-  gap: 0.8rem;
-}
-
-.category-page-title::before {
-  content: '';
-  display: block;
-  width: 6px;
-  height: 32px;
-  background: var(--accent-red, #e11d48);
-  border-radius: 4px;
-}
-
-.search-results-section {
-  padding: 2rem 4rem;
-}
-
-.search-results-section h2 {
-  font-size: 2rem;
-  margin-bottom: 2rem;
-}
-
-.search-source-section {
-  margin-bottom: 3rem;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 20px;
-  padding: 2rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.search-source-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  margin-bottom: 2rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 1rem;
-}
-
-.search-source-header h3 {
-  margin: 0;
-  font-size: 1.5rem;
-  font-weight: 600;
-}
-
-.source-label {
-  display: inline-block;
-  background: rgba(34, 197, 94, 0.2);
-  color: #4ade80;
-  font-size: 0.75rem;
-  font-weight: 700;
-  padding: 0.3rem 0.6rem;
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  letter-spacing: 0.05em;
-}
-
-.source-label.dataset-label {
-  background: rgba(59, 130, 246, 0.2);
-  color: #60a5fa;
-}
-
-.result-count {
-  color: #94a3b8;
-  font-size: 0.9rem;
-  font-weight: 500;
-}
-
-.search-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 2rem;
-}
-
-.no-results {
-  text-align: center;
-  padding: 5rem 0;
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 20px;
-  border: 1px dashed rgba(255, 255, 255, 0.1);
-}
-
-.no-results h3 {
-  font-size: 1.5rem;
-  color: #e2e8f0;
-  margin: 0 0 0.5rem 0;
-}
-
-.no-results p {
-  color: #94a3b8;
-  margin: 0;
-}
-
-@media (max-width: 768px) {
-  .home-sections,
-  .category-page,
-  .search-results-section {
-    padding: 1.5rem;
-  }
-  
-  .search-grid {
-    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
-    gap: 1rem;
-  }
-  
-  .user-id-form {
-    flex-wrap: wrap;
-    justify-content: center;
+/* RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .home-sections {
+    padding: 0 1.8rem;
+    gap: 2.5rem;
   }
 }

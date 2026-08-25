@@ -1,0 +1,586 @@
+/* AUTH.CSS - REFINED MOVIEMIND BRANDING & TYPOGRAPHY STORYTELLING (NO POPCORN) */
+
+.auth-layout {
+  display: flex;
+  min-height: 100vh;
+  width: 100vw;
+  background: #05080d url('/moviemind-pro-cinematic-bg.png') center center / cover no-repeat fixed;
+  position: relative;
+  overflow: hidden;
+  font-family: var(--font-main, 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif);
+  color: #ffffff;
+}
+
+/* CONTROLLED 10% LIGHTING ACCENTS */
+.auth-ambient-glow-cyan {
+  position: absolute;
+  width: 45vw;
+  height: 45vw;
+  background: radial-gradient(circle, rgba(0, 242, 255, 0.08) 0%, rgba(5, 8, 13, 0) 70%);
+  top: -10vh;
+  left: -10vw;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.auth-ambient-glow-violet {
+  position: absolute;
+  width: 50vw;
+  height: 50vw;
+  background: radial-gradient(circle, rgba(255, 107, 53, 0.08) 0%, rgba(5, 8, 13, 0) 75%);
+  bottom: -15vh;
+  right: -10vw;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.auth-film-grain {
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.03) 1px, transparent 0);
+  background-size: 3px 3px;
+  opacity: 0.3;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.auth-particles {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: 
+    radial-gradient(circle at 20% 40%, rgba(0, 242, 255, 0.12) 1.5px, transparent 1.5px),
+    radial-gradient(circle at 80% 60%, rgba(255, 107, 53, 0.12) 1.5px, transparent 1.5px);
+  background-size: 160px 160px;
+  animation: auth-float 30s infinite linear;
+}
+
+@keyframes auth-float {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-160px); }
+}
+
+/* BRAND PANEL (LEFT AREA) - INWARD ALIGNED WITH GENEROUS SPACE */
+.auth-brand-panel {
+  flex: 1.15;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 4rem 6rem 4rem 8.5rem;
+  z-index: 2;
+  position: relative;
+}
+
+.brand-story-composition {
+  max-width: 540px;
+}
+
+.studio-signal-badge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.signal-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f2ff;
+  box-shadow: 0 0 8px #00f2ff;
+}
+
+.signal-text {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 2.5px;
+  color: #00f2ff;
+}
+
+/* LARGE HERO WORDMARK (PRIMARY VISUAL FOCAL POINT) */
+.moviemind-hero-wordmark {
+  font-size: 4.6rem;
+  font-weight: 900;
+  letter-spacing: 9px;
+  margin: 0 0 14px 0;
+  line-height: 1;
+  position: relative;
+}
+
+.moviemind-hero-wordmark::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: -20px;
+  width: 140%;
+  height: 140%;
+  transform: translate(-10%, -50%);
+  background: radial-gradient(ellipse, rgba(0, 242, 255, 0.08) 0%, rgba(255, 107, 53, 0.05) 50%, transparent 80%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.word-movie {
+  color: #f8fafc;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.3);
+}
+
+.word-mind {
+  color: #ff6b35;
+  text-shadow: 0 0 25px rgba(255, 107, 53, 0.5);
+}
+
+.studio-universe-subtitle {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: #ffffff;
+  margin-bottom: 1.4rem;
+  opacity: 0.95;
+}
+
+.studio-story-desc {
+  font-size: 1.08rem;
+  line-height: 1.75;
+  color: #94a3b8;
+  max-width: 520px;
+  font-style: italic;
+  margin-bottom: 2.2rem;
+}
+
+.studio-slogan-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slogan-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f2ff;
+}
+
+.slogan-words {
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #00f2ff;
+}
+
+/* LOGIN UI (RIGHT AREA - CINEMATIC FOCUS FIELD) */
+.auth-hud-wrapper {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem;
+  z-index: 2;
+}
+
+.auth-hud-interface {
+  width: 100%;
+  max-width: 440px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  padding: 2.8rem 2.4rem;
+  background: radial-gradient(circle, rgba(5, 8, 13, 0.85) 0%, rgba(5, 8, 13, 0.95) 100%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.hud-welcome-tag {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: #00f2ff;
+  margin-bottom: 6px;
+}
+
+.hud-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin-bottom: 0.4rem;
+  color: #ffffff;
+}
+
+.hud-subtitle {
+  color: #94a3b8;
+  font-size: 0.92rem;
+  margin-bottom: 1.8rem;
+}
+
+/* HUD TABS */
+.hud-tabs-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1.8rem;
+}
+
+.hud-tab {
+  flex: 1;
+  padding: 0.7rem 0;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.hud-tab.active {
+  background: rgba(0, 242, 255, 0.1);
+  color: #ffffff;
+  border-color: rgba(0, 242, 255, 0.4);
+  box-shadow: 0 0 15px rgba(0, 242, 255, 0.2);
+}
+
+/* TERMINAL DEMO CHIP */
+.hud-demo-chip {
+  background: rgba(0, 242, 255, 0.04);
+  border: 1px solid rgba(0, 242, 255, 0.2);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.8rem;
+}
+
+.chip-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f2ff;
+  box-shadow: 0 0 8px #00f2ff;
+}
+
+.chip-title {
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #00f2ff;
+}
+
+.chip-email {
+  font-size: 0.85rem;
+  color: #e2e8f0;
+  margin-left: 4px;
+}
+
+.chip-action-btn {
+  background: linear-gradient(135deg, #00f2ff 0%, #0284c7 100%);
+  color: #040508;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 0 12px rgba(0, 242, 255, 0.3);
+}
+
+.chip-action-btn:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.5);
+}
+
+/* HUD FORM & UNDERLINED INPUTS */
+.hud-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+}
+
+.hud-input-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.hud-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: #cbd5e1;
+}
+
+.hud-input-line-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hud-input-icon {
+  position: absolute;
+  left: 4px;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.hud-underlined-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.15);
+  padding: 0.8rem 1rem 0.8rem 2.2rem;
+  color: #ffffff;
+  font-size: 0.95rem;
+  transition: border-color 0.3s ease;
+}
+
+.hud-underlined-input::placeholder {
+  color: #475569;
+}
+
+.email-group .hud-underlined-input:focus {
+  outline: none;
+  border-bottom-color: #00f2ff;
+  box-shadow: 0 4px 12px -4px rgba(0, 242, 255, 0.4);
+}
+
+.password-group .hud-underlined-input:focus {
+  outline: none;
+  border-bottom-color: #ff6b35;
+  box-shadow: 0 4px 12px -4px rgba(255, 107, 53, 0.4);
+}
+
+.hud-eye-toggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+}
+
+.hud-eye-toggle:hover {
+  color: #ffffff;
+}
+
+.hud-form-options {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.85rem;
+}
+
+.hud-checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #94a3b8;
+  cursor: pointer;
+}
+
+.hud-forgot-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.hud-forgot-btn:hover {
+  color: #00f2ff;
+}
+
+/* METALLIC MOVIEMIND PORTAL BUTTON */
+.moviemind-portal-btn {
+  position: relative;
+  background: linear-gradient(90deg, rgba(10, 15, 25, 0.95) 0%, rgba(20, 25, 40, 0.95) 100%);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.95rem;
+  letter-spacing: 2px;
+  padding: 1.1rem;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-left-color: rgba(0, 242, 255, 0.6);
+  border-right-color: rgba(255, 107, 53, 0.6);
+  cursor: pointer;
+  margin-top: 0.8rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  overflow: hidden;
+  transition: all 0.35s ease;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.btn-energy-water {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 6px;
+  height: 100%;
+  background: #00f2ff;
+  box-shadow: 0 0 12px #00f2ff;
+  transition: width 0.4s ease;
+}
+
+.btn-energy-fire {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 6px;
+  height: 100%;
+  background: #ff6b35;
+  box-shadow: 0 0 12px #ff6b35;
+  transition: width 0.4s ease;
+}
+
+.btn-light-sweep {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.2) 50%, transparent 100%);
+  pointer-events: none;
+}
+
+.moviemind-portal-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  border-color: rgba(0, 242, 255, 0.5);
+  box-shadow: 0 6px 25px rgba(0, 242, 255, 0.25), 0 0 20px rgba(255, 107, 53, 0.25);
+}
+
+.moviemind-portal-btn:hover .btn-energy-water {
+  width: 50%;
+}
+
+.moviemind-portal-btn:hover .btn-energy-fire {
+  width: 50%;
+}
+
+.moviemind-portal-btn.submitting {
+  transform: scale(0.97);
+  opacity: 0.9;
+  cursor: not-allowed;
+}
+
+.moviemind-portal-btn.submitting .btn-light-sweep {
+  animation: sweepBtnLight 1.5s infinite ease-in-out;
+}
+
+@keyframes sweepBtnLight {
+  0% { left: -100%; }
+  100% { left: 100%; }
+}
+
+.btn-text {
+  position: relative;
+  z-index: 2;
+}
+
+/* STYLED SECONDARY ACTION BUTTON (NO PLAIN WHITE BUTTON) */
+.auth-footer {
+  margin-top: 1.8rem;
+  text-align: center;
+}
+
+.signup-prompt-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.prompt-label {
+  font-size: 0.85rem;
+  color: #94a3b8;
+}
+
+.cinematic-secondary-btn {
+  background: rgba(0, 242, 255, 0.06);
+  border: 1px solid rgba(0, 242, 255, 0.35);
+  color: #00f2ff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 12px rgba(0, 242, 255, 0.15);
+}
+
+.cinematic-secondary-btn:hover {
+  background: rgba(0, 242, 255, 0.15);
+  color: #ffffff;
+  border-color: #00f2ff;
+  box-shadow: 0 0 20px rgba(0, 242, 255, 0.35);
+}
+
+.hud-privacy-line {
+  margin-top: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 0.75rem;
+  color: #64748b;
+}
+
+.privacy-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #00f2ff;
+}
+
+/* RESPONSIVE DESIGN */
+@media (max-width: 1024px) {
+  .auth-brand-panel {
+    flex: 0.8;
+    padding: 3rem;
+  }
+  .moviemind-hero-wordmark {
+    font-size: 3.4rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .auth-layout {
+    flex-direction: column;
+  }
+  
+  .auth-brand-panel {
+    flex: 0;
+    padding: 2rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .studio-universe-subtitle, .studio-story-desc, .studio-slogan-row {
+    display: none;
+  }
+
+  .auth-hud-wrapper {
+    padding: 1.5rem;
+  }
+
+  .auth-hud-interface {
+    padding: 2rem 1.5rem;
+  }
+}

@@ -2,120 +2,104 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
-import Insights from './pages/Insights';
+import TasteProfilePage from './pages/TasteProfilePage';
+import AIInsightsPage from './pages/AIInsightsPage';
 import LibraryPage from './pages/LibraryPage';
 import SearchPage from './pages/SearchPage';
 import MovieDetailsPanel from './components/MovieDetailsPanel';
 import WelcomeScreen from './components/WelcomeScreen';
 import AccessScreen from './components/AccessScreen';
 import CinematicTransition from './components/CinematicTransition';
+import ErrorBoundary from './components/ErrorBoundary';
+import CinematicCursor from './components/CinematicCursor';
 import { api } from './services/api';
+import { movieSearchService } from './services/MovieSearchService';
+import { normalizeMovie } from './utils/movieUtils';
 import { ToastProvider } from './components/Toast';
+import { AuthProvider } from './context/AuthContext';
 import './App.css';
 
 export default function App() {
-  const [appState, setAppState] = useState('welcome'); // welcome, access, transition, app
+  const [appState, setAppState] = useState(() => {
+    try {
+      const token = localStorage.getItem('moviemind_token');
+      const isGuest = localStorage.getItem('moviemind_guest');
+      if (token || isGuest === 'true') {
+        return 'app';
+      }
+    } catch (e) {
+      console.warn('Storage check in App init warning:', e);
+    }
+    return 'welcome';
+  });
+
   const [currentTab, setCurrentTab] = useState('home');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMovie, setSelectedMovie] = useState(null);
+  const [navHistory, setNavHistory] = useState(['home']);
 
-  const handleNavigate = (tab) => {
-    setCurrentTab(tab);
-    setSearchQuery('');
+  const handleNavigate = (tabId) => {
+    if (tabId === currentTab) return;
+    setNavHistory((prev) => [...prev, tabId]);
+    setCurrentTab(tabId);
+  };
 
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+  const handleGoBack = () => {
+    if (navHistory.length <= 1) return;
+    const newHistory = [...navHistory];
+    newHistory.pop();
+    const prevTab = newHistory[newHistory.length - 1];
+    setNavHistory(newHistory);
+    setCurrentTab(prevTab);
   };
 
   const handleSearch = (query) => {
-    setCurrentTab('search');
     setSearchQuery(query);
-
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
+    if (query.trim() && currentTab !== 'search') {
+      handleNavigate('search');
+    }
   };
 
-  const handleMovieSelect = async (movie) => {
-
-    // Open immediately with available data
-    setSelectedMovie(movie);
-
+  const handleMovieSelect = (movie) => {
+    console.log("[VIEW DETAILS] CLICK RECEIVED:", movie);
     try {
-
-      const hasFullDetails =
-        movie?.poster ||
-        movie?.Poster ||
-        movie?.actors ||
-        movie?.Actors ||
-        movie?.plot ||
-        movie?.Plot;
-
-      // Already enriched — no external lookup needed
-      if (hasFullDetails) {
+      if (!movie || typeof movie !== 'object') {
+        console.warn("[VIEW DETAILS] Invalid movie object received");
         return;
       }
-
-      const title =
-        movie?.title ||
-        movie?.Title ||
-        movie?.name;
-
-      if (!title) {
-        return;
-      }
-
-      // Fetch full details only when user clicks this movie
-      const result =
-        await api.universalMovieSearch(title);
-
-      if (
-        result?.found &&
-        result?.movie
-      ) {
-
-        setSelectedMovie({
-          ...movie,
-          ...result.movie
-        });
-
-      }
-
-    } catch (error) {
-
-      console.error(
-        'Failed to load full movie details:',
-        error
-      );
-
+      setSelectedMovie(movie);
+    } catch (err) {
+      console.error("[VIEW DETAILS] Error opening details panel:", err);
     }
+  };
 
+  const handleAuthSuccess = () => {
+    setAppState('transition');
   };
 
   const pageVariants = {
-    initial: { opacity: 0, y: 20 },
-    animate: { opacity: 1, y: 0, transition: { duration: 0.5 } },
-    exit: { opacity: 0, y: -20, transition: { duration: 0.3 } }
+    initial: { opacity: 0, y: 15 },
+    animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } },
+    exit: { opacity: 0, y: -10, transition: { duration: 0.25, ease: 'easeIn' } }
   };
 
   return (
-    <ToastProvider>
-      <AnimatePresence mode="wait">
-        {appState === 'welcome' && (
-          <WelcomeScreen key="welcome" onComplete={() => setAppState('access')} />
-        )}
-        
-        {appState === 'access' && (
-          <AccessScreen key="access" onGuestEntry={() => setAppState('transition')} />
-        )}
+    <AuthProvider>
+      <CinematicCursor />
+      <ToastProvider>
+        <AnimatePresence mode="wait">
+          {appState === 'welcome' && (
+            <WelcomeScreen key="welcome" onComplete={() => setAppState('access')} />
+          )}
+          
+          {appState === 'access' && (
+            <AccessScreen key="access" onAuthSuccess={handleAuthSuccess} />
+          )}
 
-        {appState === 'transition' && (
-          <CinematicTransition key="transition" onComplete={() => setAppState('app')} />
-        )}
-      </AnimatePresence>
+          {appState === 'transition' && (
+            <CinematicTransition key="transition" onComplete={() => setAppState('app')} />
+          )}
+        </AnimatePresence>
 
       {appState === 'app' && (
         <motion.div 
@@ -129,75 +113,91 @@ export default function App() {
             currentTab={currentTab}
             onNavigate={handleNavigate}
             onSearch={handleSearch}
+            onAuthAction={() => setAppState('access')}
           />
 
           <div className="main-content-wrapper">
 
             <main className="main-content">
-              <AnimatePresence mode="wait">
-                {/* HOME + CATEGORY PAGES */}
-                {(currentTab === 'home' ||
-                  currentTab === 'trending' ||
-                  currentTab === 'new-releases' ||
-                  currentTab === 'top-rated') && (
-                  
-                  <motion.div key={`cat-${currentTab}`} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-                    <Home
-                      searchQuery={searchQuery}
-                      onMovieSelect={handleMovieSelect}
-                      categoryFilter={
-                        currentTab !== 'home'
-                          ? currentTab
-                          : null
-                      }
-                    />
-                  </motion.div>
-                )}
+              <ErrorBoundary onGoHome={() => handleNavigate('home')}>
+                <AnimatePresence mode="wait">
+                  {/* HOME + CATEGORY PAGES */}
+                  {(currentTab === 'home' ||
+                    currentTab === 'trending' ||
+                    currentTab === 'new-releases' ||
+                    currentTab === 'top-rated') && (
+                    
+                    <motion.div key={`cat-${currentTab}`} variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                      <Home
+                        searchQuery={searchQuery}
+                        onMovieSelect={handleMovieSelect}
+                        onBack={navHistory.length > 1 ? handleGoBack : null}
+                        categoryFilter={
+                          currentTab !== 'home'
+                            ? currentTab
+                            : null
+                        }
+                      />
+                    </motion.div>
+                  )}
 
-                {/* SEARCH DATASET */}
-                {currentTab === 'search' && (
-                  <motion.div key="search" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-                    <SearchPage
-                      initialQuery={searchQuery}
-                      onMovieSelect={handleMovieSelect}
-                    />
-                  </motion.div>
-                )}
+                  {/* SEARCH DATASET */}
+                  {currentTab === 'search' && (
+                    <motion.div key="search" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                      <SearchPage
+                        initialQuery={searchQuery}
+                        onMovieSelect={handleMovieSelect}
+                        onBack={navHistory.length > 1 ? handleGoBack : null}
+                      />
+                    </motion.div>
+                  )}
 
-                {/* INSIGHTS */}
-                {currentTab === 'insights' && (
-                  <motion.div key="insights" variants={pageVariants} initial="initial" animate="animate" exit="exit">
-                    <Insights />
-                  </motion.div>
-                )}
+                  {/* TASTE PROFILE PAGE */}
+                  {(currentTab === 'taste-profile' || currentTab === 'insights') && (
+                    <motion.div key="taste-profile" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                      <TasteProfilePage onBack={navHistory.length > 1 ? handleGoBack : null} />
+                    </motion.div>
+                  )}
 
-                {/* MY LIBRARY */}
-                {(currentTab === 'favourites' ||
-                  currentTab === 'watchlist' ||
-                  currentTab === 'history') && (
-                  
-                  <motion.div key={`lib-${currentTab}`} variants={pageVariants} initial="initial" animate="animate" exit="exit">
-                    <LibraryPage
-                      type={currentTab}
-                      onMovieSelect={handleMovieSelect}
-                    />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  {/* AI RECOMMENDATION INSIGHTS LAB PAGE */}
+                  {currentTab === 'ai-insights' && (
+                    <motion.div key="ai-insights" variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                      <AIInsightsPage onBack={navHistory.length > 1 ? handleGoBack : null} />
+                    </motion.div>
+                  )}
+
+                  {/* MY LIBRARY */}
+                  {(currentTab === 'favourites' ||
+                    currentTab === 'watchlist' ||
+                    currentTab === 'history') && (
+                    
+                    <motion.div key={`lib-${currentTab}`} variants={pageVariants} initial="initial" animate="animate" exit="exit">
+                      <LibraryPage
+                        type={currentTab}
+                        onMovieSelect={handleMovieSelect}
+                        onBack={navHistory.length > 1 ? handleGoBack : null}
+                      />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </ErrorBoundary>
             </main>
 
           </div>
 
           {/* MOVIE DETAILS */}
-          <MovieDetailsPanel
-            movie={selectedMovie}
-            isOpen={!!selectedMovie}
-            onClose={() => setSelectedMovie(null)}
-            onMovieSelect={handleMovieSelect}
-          />
+          <ErrorBoundary onGoHome={() => setSelectedMovie(null)}>
+            <MovieDetailsPanel
+              movie={selectedMovie}
+              isOpen={Boolean(selectedMovie)}
+              onClose={() => setSelectedMovie(null)}
+              onMovieSelect={handleMovieSelect}
+            />
+          </ErrorBoundary>
 
         </motion.div>
       )}
-    </ToastProvider>
+      </ToastProvider>
+    </AuthProvider>
   );
 }
