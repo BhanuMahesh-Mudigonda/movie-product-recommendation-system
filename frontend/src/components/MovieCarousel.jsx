@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useLayoutEffect } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import MovieCard from './MovieCard';
 import './MovieCarousel.css';
@@ -6,9 +6,17 @@ import './MovieCarousel.css';
 export default function MovieCarousel({
   title,
   movies = [],
-  onMovieClick
+  onMovieClick,
+  onMovieSelect
 }) {
+  const handleMovieSelect = onMovieClick || onMovieSelect;
   const scrollRef = useRef(null);
+
+  useLayoutEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = 0;
+    }
+  }, [movies]);
 
   const scroll = (direction) => {
     if (!scrollRef.current) return;
@@ -80,7 +88,7 @@ export default function MovieCarousel({
                 `${movie.title}-${idx}`
               }
               movie={movie}
-              onClick={onMovieClick}
+              onClick={handleMovieSelect}
               rank={
                 title?.toLowerCase().includes('trending')
                   ? idx + 1

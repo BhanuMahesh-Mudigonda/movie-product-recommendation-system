@@ -1,7 +1,17 @@
 import { normalizeMovie } from '../utils/movieUtils.js';
 
-const API_BASE_URL =
+const rawBaseUrl =
   (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/api';
+
+export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
+
+export function buildApiUrl(path) {
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  if (API_BASE_URL.endsWith('/api') && cleanPath.startsWith('/api/')) {
+    return `${API_BASE_URL}${cleanPath.substring(4)}`;
+  }
+  return `${API_BASE_URL}${cleanPath}`;
+}
 
 const fetchOptions = {
   headers: {
@@ -91,7 +101,7 @@ export const api = {
   async getMovies(limit = 20) {
 
     return await safeFetch(
-      `${API_BASE_URL}/movies?limit=${limit}`
+      buildApiUrl(`/movies?limit=${limit}`)
     );
 
   },
@@ -99,7 +109,7 @@ export const api = {
   async getPopularMovies(limit = 20) {
 
     return await safeFetch(
-      `${API_BASE_URL}/movies/popular?limit=${limit}`
+      buildApiUrl(`/movies/popular?limit=${limit}`)
     );
 
   },
@@ -107,7 +117,7 @@ export const api = {
   async getTopRatedMovies(limit = 20) {
 
     return await safeFetch(
-      `${API_BASE_URL}/movies/top-rated?limit=${limit}`
+      buildApiUrl(`/movies/top-rated?limit=${limit}`)
     );
 
   },
@@ -115,7 +125,7 @@ export const api = {
   async getExploreMovies(limit = 40) {
 
     return await safeFetch(
-      `${API_BASE_URL}/movies/explore?limit=${limit}`
+      buildApiUrl(`/movies/explore?limit=${limit}`)
     );
 
   },
@@ -123,7 +133,7 @@ export const api = {
   async getHomeMovies(limit = 11) {
 
     return await safeFetch(
-      `${API_BASE_URL}/movies/home?limit=${limit}`
+      buildApiUrl(`/movies/home?limit=${limit}`)
     );
 
   },
@@ -134,7 +144,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/recommend/${userId}?top_k=${topK}`
+      buildApiUrl(`/recommend/${userId}?top_k=${topK}`)
     );
 
   },
@@ -145,7 +155,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/similar/${movieId}?top_k=${topK}`
+      buildApiUrl(`/similar/${movieId}?top_k=${topK}`)
     );
 
   },
@@ -184,7 +194,7 @@ export const api = {
     }
 
     return await safeFetch(
-      `${API_BASE_URL}/similar/external?${params.toString()}`
+      buildApiUrl(`/similar/external?${params.toString()}`)
     );
 
   },
@@ -195,7 +205,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/movies/search?q=${encodeURIComponent(query)}&limit=${limit}`
+      buildApiUrl(`/movies/search?q=${encodeURIComponent(query)}&limit=${limit}`)
     );
 
   },
@@ -203,7 +213,7 @@ export const api = {
   async universalMovieSearch(query) {
 
     return await safeFetch(
-      `${API_BASE_URL}/universal/search?q=${encodeURIComponent(query)}`
+      buildApiUrl(`/universal/search?q=${encodeURIComponent(query)}`)
     );
 
   },
@@ -214,7 +224,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/external/search?q=${encodeURIComponent(query)}&page=${page}`
+      buildApiUrl(`/external/search?q=${encodeURIComponent(query)}&page=${page}`)
     );
 
   },
@@ -224,7 +234,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/external/movie/${encodeURIComponent(imdbId)}`
+      buildApiUrl(`/external/movie/${encodeURIComponent(imdbId)}`)
     );
 
   },
@@ -232,7 +242,7 @@ export const api = {
   async getAnalytics() {
 
     return await safeFetch(
-      `${API_BASE_URL}/analytics`
+      buildApiUrl('/analytics')
     );
 
   },
@@ -247,7 +257,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/api/catalogue/search?q=${encodeURIComponent(query)}&limit=${limit}`
+      buildApiUrl(`/api/catalogue/search?q=${encodeURIComponent(query)}&limit=${limit}`)
     );
 
   },
@@ -257,7 +267,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/api/catalogue/movie/${movieId}`
+      buildApiUrl(`/api/catalogue/movie/${movieId}`)
     );
 
   },
@@ -268,7 +278,7 @@ export const api = {
   ) {
 
     return await safeFetch(
-      `${API_BASE_URL}/api/catalogue/movie/${movieId}/similar?limit=${limit}`
+      buildApiUrl(`/api/catalogue/movie/${movieId}/similar?limit=${limit}`)
     );
 
   },
@@ -276,7 +286,7 @@ export const api = {
   async getCatalogueStats() {
 
     return await safeFetch(
-      `${API_BASE_URL}/api/catalogue/stats`
+      buildApiUrl('/api/catalogue/stats')
     );
 
   }

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useLayoutEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import Sidebar from './components/Sidebar';
 import Home from './pages/Home';
@@ -38,8 +38,16 @@ export default function App() {
   const [selectedMovie, setSelectedMovie] = useState(null);
   const [navHistory, setNavHistory] = useState(['home']);
 
+  useLayoutEffect(() => {
+    if (typeof window !== 'undefined' && 'scrollRestoration' in window.history) {
+      window.history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+  }, [currentTab, appState]);
+
   const handleNavigate = (tabId) => {
     if (tabId === currentTab) return;
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
     setNavHistory((prev) => [...prev, tabId]);
     setCurrentTab(tabId);
   };

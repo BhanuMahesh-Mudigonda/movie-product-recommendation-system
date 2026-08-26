@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect } from 'react';
 import { api } from '../services/api';
 import { movieMindRanker } from '../services/movieMindRanker';
 import { movieEnrichmentService } from '../services/movieEnrichmentService';
@@ -35,6 +35,10 @@ export default function Home({
   const [teluguRow, setTeluguRow] = useState(() => cachedTeluguRow || (FALLBACK_CATALOGUE.telugu || []));
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [loadingCatalogue, setLoadingCatalogue] = useState(false);
+
+  useLayoutEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, [categoryFilter]);
 
   // =====================================================
   // LOAD MOVIEMIND HOME CATALOGUE
@@ -82,16 +86,30 @@ export default function Home({
 
       try {
         const data = await api.getRecommendations(1, 11);
-        const originalRecommendations = data?.recommendations || [];
+        const originalRecommendations = data?.recommendations || (Array.isArray(data) ? data : []);
         const rankedRecommendations = movieMindRanker.rankMovies(originalRecommendations);
         const enrichedRecommendations = await movieEnrichmentService.enrichMovies(rankedRecommendations);
         const validRecs = (enrichedRecommendations || []).filter(hasValidPoster);
+
+        // Merge with fallback catalogue pool to guarantee full carousel (prevent visual jumps)
+        const fallbackList = (FALLBACK_CATALOGUE.recommended || []).filter(hasValidPoster);
+        const existingKeys = new Set(validRecs.map(m => String(m.movieId || m.id || m.title).toLowerCase()));
+
+        for (const fb of fallbackList) {
+          const key = String(fb.movieId || fb.id || fb.title).toLowerCase();
+          if (!existingKeys.has(key)) {
+            validRecs.push(fb);
+            existingKeys.add(key);
+          }
+        }
 
         cachedRecommendations = validRecs;
         setRecommended(validRecs);
       } catch (error) {
         console.error('Recommendation loading failed:', error);
-        setRecommended([]);
+        const fallback = (FALLBACK_CATALOGUE.recommended || []).filter(hasValidPoster);
+        cachedRecommendations = fallback;
+        setRecommended(fallback);
       } finally {
         setLoadingRecs(false);
       }
@@ -101,93 +119,11 @@ export default function Home({
   }, []);
 
   // =====================================================
-  // BUILD DEDICATED TELUGU ROW (Salaar #1, Kalki #2, Hi Nanna, Sita Ramam, Shyam Singha Roy...)
+  // DEDICATED TELUGU ROW INITIALIZATION
   // =====================================================
-
-  useEffect(() => {
-    const fetchTeluguRow = async () => {
-      if (cachedTeluguRow && cachedTeluguRow.length >= 8) {
-        setTeluguRow(cachedTeluguRow);
-        return;
-      }
-
-      const teluguQueries = [
-        "Salaar",
-        "Kalki",
-        "Hi Nanna",
-        "Sita Ramam",
-        "Shyam Singha Roy",
-        "RRR",
-        "Baahubali",
-        "Pushpa",
-        "Jersey",
-        "Rangasthalam",
-        "Dhamaka",
-        "Waltair Veerayya"
-      ];
-
-      try {
-        const row = [];
-        const usedKeys = new Set();
-
-        const promises = teluguQueries.map(q => api.searchMovies(q, 1));
-        const resList = await Promise.all(promises);
-
-        for (const res of resList) {
-          if (Array.isArray(res) && res.length > 0) {
-            const norm = normalizeMovie(res[0]);
-            if (norm && hasValidPoster(norm)) {
-              const title = String(norm.title || '').toLowerCase();
-              if (title.includes('forever')) continue; // Exclude invalid titles
-
-              const key = String(norm.movieId || norm.id || title).toLowerCase();
-              if (!usedKeys.has(key)) {
-                row.push(norm);
-                usedKeys.add(key);
-              }
-            }
-          }
-        }
-
-        // Add extra valid Telugu movies from catalogue data
-        const pool = [
-          ...(catalogueData?.hero || []),
-          ...(catalogueData?.trending || []),
-          ...(catalogueData?.action || []),
-          ...(catalogueData?.hidden_gems || [])
-        ];
-
-        for (const m of pool) {
-          if (!m || !hasValidPoster(m)) continue;
-          const norm = normalizeMovie(m) || m;
-          const title = String(norm.title || '').toLowerCase();
-          const lang = String(norm.language || norm.languageCode || '').toLowerCase();
-          const key = String(norm.movieId || norm.id || title).toLowerCase();
-
-          if (usedKeys.has(key) || title.includes('forever')) continue;
-
-          const isTelugu = lang.includes('telugu') || [
-            'baahubali', 'pushpa', 'rrr', 'rangasthalam', 'eega', 
-            'aravindha', 'bharath', 'jersey', 'kancharapalem', 'bommarillu', 'race gurram'
-          ].some(t => title.includes(t));
-
-          if (isTelugu) {
-            row.push(norm);
-            usedKeys.add(key);
-          }
-        }
-
-        if (row.length > 0) {
-          cachedTeluguRow = row;
-          setTeluguRow(row);
-        }
-      } catch (err) {
-        console.error("Failed to build Telugu row:", err);
-      }
-    };
-
-    fetchTeluguRow();
-  }, [catalogueData]);
+  if (!cachedTeluguRow) {
+    cachedTeluguRow = (FALLBACK_CATALOGUE.telugu || []).filter(hasValidPoster);
+  }
 
   // =====================================================
   // UNIVERSAL MOVIE SEARCH
