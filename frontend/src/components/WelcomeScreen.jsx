@@ -25,7 +25,7 @@ export default function WelcomeScreen({ onComplete }) {
     setIsExiting(true);
     setTimeout(() => {
       onComplete?.();
-    }, 1100); // Smooth camera zoom time
+    }, 850); // Smooth cinematic camera zoom time (850ms)
   };
 
   return (
@@ -34,7 +34,7 @@ export default function WelcomeScreen({ onComplete }) {
         className={`welcome-container ${isExiting ? 'cinematic-reel-zoom-exit' : ''}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        exit={{ opacity: 0, scale: 1.25, filter: 'blur(20px)', transition: { duration: 1.1 } }}
+        exit={{ opacity: 0, scale: 1.25, filter: 'blur(20px)', transition: { duration: 0.85 } }}
       >
         {/* CINEMATIC ATMOSPHERE LAYERS */}
         <div className="welcome-background">

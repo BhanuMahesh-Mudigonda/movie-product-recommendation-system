@@ -164,7 +164,7 @@
 
 /* ZOOM-IN CAMERA EXIT TRANSITION */
 .cinematic-reel-zoom-exit {
-  animation: cameraZoomThrough 1.1s forwards ease-in;
+  animation: cameraZoomThrough 0.85s forwards ease-in;
 }
 
 @keyframes cameraZoomThrough {
