@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Info, Star, ChevronLeft, ChevronRight, Sparkles, X, CheckCircle2 } from 'lucide-react';
-import { normalizeMovie } from '../utils/movieUtils';
+import { normalizeMovie, resolveTrailerUrl } from '../utils/movieUtils';
 import './Hero.css';
 
 export default function Hero({ movies = [], onMovieSelect }) {
@@ -66,13 +66,10 @@ export default function Hero({ movies = [], onMovieSelect }) {
   };
 
   const handleTrailer = () => {
-    if (trailer) {
-      window.open(trailer, '_blank', 'noopener,noreferrer');
-      return;
+    const resolved = resolveTrailerUrl(currentMovie);
+    if (resolved) {
+      window.open(resolved, '_blank', 'noopener,noreferrer');
     }
-
-    const query = encodeURIComponent(`${title} ${year} official trailer`);
-    window.open(`https://www.youtube.com/results?search_query=${query}`, '_blank', 'noopener,noreferrer');
   };
 
   const getTypographyClass = (movieTitle) => {

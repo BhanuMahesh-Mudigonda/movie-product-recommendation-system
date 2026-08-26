@@ -143,15 +143,91 @@ function normalizeCast(movie) {
   return [];
 }
 
-function normalizeTrailer(movie) {
-  const raw =
-    movie?.trailer ||
-    movie?.trailerUrl ||
-    movie?.trailer_url ||
-    movie?.youtubeTrailer ||
-    null;
+export function resolveTrailerUrl(movieOrTrailer) {
+  if (!movieOrTrailer) return null;
 
-  if (!raw) {
+  const detectLanguage = (m) => {
+    if (!m || typeof m !== 'object') return '';
+    const raw = m.language || m.original_language || m.languageCode || m.originalLanguage || m.Language || '';
+    const str = String(raw).trim().toLowerCase();
+    if (str.includes('telugu') || str === 'te' || str === 'tel') return 'Telugu';
+    if (str.includes('hindi') || str === 'hi' || str === 'hin') return 'Hindi';
+    if (str.includes('tamil') || str === 'ta' || str === 'tam') return 'Tamil';
+    if (str.includes('malayalam') || str === 'ml' || str === 'mal') return 'Malayalam';
+    if (str.includes('kannada') || str === 'kn' || str === 'kan') return 'Kannada';
+    if (str.includes('korean') || str === 'ko' || str === 'kor') return 'Korean';
+    if (str.includes('japanese') || str === 'ja' || str === 'jpn') return 'Japanese';
+    if (str.includes('english') || str === 'en' || str === 'eng') return 'English';
+    return String(raw).trim();
+  };
+
+  let movieObj = typeof movieOrTrailer === 'object' ? movieOrTrailer : null;
+  let candidate = null;
+
+  if (typeof movieOrTrailer === 'string') {
+    candidate = movieOrTrailer;
+  } else if (movieObj) {
+    const rawCandidates = [
+      movieObj.url,
+      movieObj.trailerUrl,
+      movieObj.trailer_url,
+      movieObj.youtubeUrl,
+      movieObj.youtube_url,
+      movieObj.youtubeTrailer,
+      movieObj.key,
+      movieObj.videoId,
+      movieObj.video,
+      movieObj.link
+    ];
+
+    if (movieObj.trailer) {
+      if (typeof movieObj.trailer === 'string') {
+        rawCandidates.unshift(movieObj.trailer);
+      } else if (typeof movieObj.trailer === 'object' && movieObj.trailer !== null) {
+        rawCandidates.unshift(
+          movieObj.trailer.url,
+          movieObj.trailer.trailerUrl,
+          movieObj.trailer.youtubeUrl,
+          movieObj.trailer.link,
+          movieObj.trailer.key
+        );
+      }
+    }
+
+    candidate = rawCandidates.find(c => typeof c === 'string' && c.trim() !== '' && c !== 'N/A' && c !== 'null' && c !== 'undefined');
+  }
+
+  if (typeof candidate === 'string') {
+    const trimmed = candidate.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('//')) {
+      return trimmed.startsWith('//') ? `https:${trimmed}` : trimmed;
+    }
+    if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+      return `https://www.youtube.com/watch?v=${trimmed}`;
+    }
+    if (trimmed.includes('youtube.com') || trimmed.includes('youtu.be')) {
+      return `https://${trimmed.replace(/^https?:\/\//, '')}`;
+    }
+  }
+
+  // Fallback: Language-aware YouTube search URL
+  if (movieObj) {
+    const title = movieObj.title || movieObj.Title || movieObj.name || movieObj.original_title || '';
+    const year = movieObj.year || movieObj.Year || movieObj.release_year || '';
+    const lang = detectLanguage(movieObj);
+
+    if (title) {
+      const searchTerms = [title, year, 'Official Trailer', lang].filter(Boolean).join(' ');
+      return `https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerms)}`;
+    }
+  }
+
+  return null;
+}
+
+function normalizeTrailer(movie) {
+  const resolved = resolveTrailerUrl(movie);
+  if (!resolved) {
     return {
       status: 'not_found',
       url: null,
@@ -159,37 +235,14 @@ function normalizeTrailer(movie) {
     };
   }
 
-  if (typeof raw === 'object') {
-    const url =
-      raw.url ||
-      raw.link ||
-      raw.trailerUrl ||
-      null;
-
-    return {
-      status:
-        raw.status ||
-        (url ? 'found' : 'not_found'),
-
-      url,
-
-      embedUrl:
-        raw.embedUrl ||
-        raw.embed_url ||
-        null
-    };
-  }
-
-  const url = String(raw);
+  const isSearchFallback = resolved.includes('youtube.com/results?search_query=');
 
   return {
-    status: 'found',
-    url,
-    embedUrl:
-      url.includes('youtube.com') ||
-      url.includes('youtu.be')
-        ? url
-        : null
+    status: isSearchFallback ? 'search_fallback' : 'official',
+    url: resolved,
+    embedUrl: !isSearchFallback && (resolved.includes('youtube.com') || resolved.includes('youtu.be'))
+      ? resolved
+      : null
   };
 }
 

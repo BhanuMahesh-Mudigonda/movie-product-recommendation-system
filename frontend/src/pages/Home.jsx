@@ -7,6 +7,7 @@ import MovieCarousel from '../components/MovieCarousel';
 import MovieCard from '../components/MovieCard';
 import BackButton from '../components/BackButton';
 import { normalizeMovie } from '../utils/movieUtils';
+import { FALLBACK_CATALOGUE } from '../services/fallbackCatalogue';
 import './Home.css';
 
 // Module-level in-memory cache to prevent re-fetching catalogue on tab switches
@@ -29,11 +30,11 @@ export default function Home({
   categoryFilter,
   onBack
 }) {
-  const [catalogueData, setCatalogueData] = useState(cachedHomeCatalogue);
-  const [recommended, setRecommended] = useState(cachedRecommendations || []);
-  const [teluguRow, setTeluguRow] = useState(cachedTeluguRow || []);
-  const [loadingRecs, setLoadingRecs] = useState(!cachedRecommendations);
-  const [loadingCatalogue, setLoadingCatalogue] = useState(!cachedHomeCatalogue);
+  const [catalogueData, setCatalogueData] = useState(() => cachedHomeCatalogue || FALLBACK_CATALOGUE);
+  const [recommended, setRecommended] = useState(() => cachedRecommendations || (FALLBACK_CATALOGUE.recommended || []));
+  const [teluguRow, setTeluguRow] = useState(() => cachedTeluguRow || (FALLBACK_CATALOGUE.telugu || []));
+  const [loadingRecs, setLoadingRecs] = useState(false);
+  const [loadingCatalogue, setLoadingCatalogue] = useState(false);
 
   // =====================================================
   // LOAD MOVIEMIND HOME CATALOGUE
@@ -227,10 +228,12 @@ export default function Home({
     const config =
       categoryConfig[categoryFilter];
 
-    const movies =
+    const rawMovies =
       config && catalogueData
-        ? catalogueData[config.key] || []
+        ? (catalogueData[config.key] || [])
         : [];
+
+    const movies = (rawMovies || []).filter(hasValidPoster);
 
     return (
       <div className="home-page">
@@ -253,17 +256,18 @@ export default function Home({
             </p>
           </div>
 
-          <div className="search-grid">
+          <div className="category-movie-grid">
 
             {movies.map((movie, index) => (
               <MovieCard
                 key={
-                  movie.movieId ||
-                  movie.imdbID ||
-                  `${movie.title}-${index}`
+                  movie?.movieId ||
+                  movie?.imdbID ||
+                  movie?.id ||
+                  `${movie?.title || 'movie'}-${index}`
                 }
                 movie={movie}
-                onClick={() => onMovieSelect(movie)}
+                onClick={() => onMovieSelect?.(movie)}
               />
             ))}
 

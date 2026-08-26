@@ -23,9 +23,9 @@ class MovieSearchService {
     let trailerStatus = 'not_found';
     let embedUrl = null;
 
-    if (trailerUrl) {
+    if (trailerUrl && typeof trailerUrl === 'string') {
       const regExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|&v=)([^#&?]*).*/;
-      const match = trailerUrl.match(regExp);
+      const match = typeof trailerUrl === 'string' ? trailerUrl.match(regExp) : null;
       if (match && match[2].length === 11) {
         trailerStatus = 'official';
         embedUrl = `https://www.youtube.com/embed/${match[2]}?autoplay=1&controls=1&rel=0`;

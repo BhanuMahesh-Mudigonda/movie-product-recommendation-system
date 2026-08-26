@@ -8,7 +8,7 @@ import { api } from '../services/api';
 import { userStorage } from '../services/userStorage';
 import { localSimilarityService } from '../services/localSimilarityService';
 import { movieMetadataService } from '../services/movieMetadataService';
-import { normalizeMovie, safeString, safeGenres } from '../utils/movieUtils';
+import { normalizeMovie, safeString, safeGenres, resolveTrailerUrl } from '../utils/movieUtils';
 import { useToast } from './Toast';
 import TrailerModal from './TrailerModal';
 
@@ -365,7 +365,8 @@ export default function MovieDetailsPanel({
             isOpen={isTrailerOpen}
             onClose={() => setIsTrailerOpen(false)}
             movieTitle={title}
-            trailerUrl={movie?.trailer}
+            movie={movie}
+            trailerUrl={resolveTrailerUrl(movie)}
           />
         </motion.div>
       </motion.div>

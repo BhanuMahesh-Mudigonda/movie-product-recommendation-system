@@ -140,19 +140,24 @@ class MovieEnrichmentService {
   }
 
   async enrichMovies(movies = []) {
-
-    if (!Array.isArray(movies)) {
+    if (!Array.isArray(movies) || movies.length === 0) {
       return [];
     }
 
-    const results =
-      await Promise.all(
-        movies.map(movie =>
-          this.enrichMovie(movie)
-        )
+    try {
+      const enrichmentPromise = Promise.all(
+        movies.map(movie => this.enrichMovie(movie))
+      );
+      
+      const timeoutPromise = new Promise(resolve => 
+        setTimeout(() => resolve(movies.map(normalizeMovie).filter(Boolean)), 1200)
       );
 
-    return results.filter(Boolean);
+      const results = await Promise.race([enrichmentPromise, timeoutPromise]);
+      return (results && results.length > 0) ? results.filter(Boolean) : movies.map(normalizeMovie).filter(Boolean);
+    } catch (e) {
+      return movies.map(normalizeMovie).filter(Boolean);
+    }
   }
 }
 
