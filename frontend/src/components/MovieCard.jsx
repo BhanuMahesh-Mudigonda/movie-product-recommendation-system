@@ -5,6 +5,7 @@ import { normalizeMovie } from '../utils/movieUtils';
 import { userStorage } from '../services/userStorage';
 import { movieMindBrain } from '../services/movieMindBrain';
 import { useToast } from './Toast';
+import FallbackPoster from './FallbackPoster';
 import './MovieCard.css';
 
 export default function MovieCard({ movie, onClick, rank }) {
@@ -34,10 +35,6 @@ export default function MovieCard({ movie, onClick, rank }) {
     poster === 'null' ||
     poster === 'undefined' ||
     poster === 'none';
-
-  if (isInvalidPoster || imageError) {
-    return null;
-  }
 
   const handleToggleFav = (e) => {
     e.stopPropagation();
@@ -81,13 +78,17 @@ export default function MovieCard({ movie, onClick, rank }) {
       transition={{ duration: 0.25 }}
     >
       <div className="card-poster-wrapper">
-        <img
-          src={poster}
-          alt={title}
-          className="card-poster-img"
-          onError={() => setImageError(true)}
-          loading="lazy"
-        />
+        {(!isInvalidPoster && !imageError) ? (
+          <img
+            src={poster}
+            alt={title}
+            className="card-poster-img"
+            onError={() => setImageError(true)}
+            loading="lazy"
+          />
+        ) : (
+          <FallbackPoster title={title} year={year} genres={genres} />
+        )}
 
         {/* SIGNAL MATCH BADGE - CLAMPED GUARANTEED <= 100% */}
         <div className="card-signal-badge">

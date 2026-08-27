@@ -20,11 +20,8 @@ const RECS_CACHE_KEY = 'moviemind_recommendations_v2';
 
 function hasValidPoster(movie) {
   if (!movie) return false;
-  const p = movie.poster || movie.Poster || movie.poster_url || movie.posterUrl || movie.image;
-  if (!p) return false;
-  const str = String(p).trim().toLowerCase();
-  if (str === '' || str === 'n/a' || str === 'null' || str === 'undefined' || str === 'none') return false;
-  return true;
+  const title = movie.title || movie.Title || movie.name || movie.original_title;
+  return Boolean(title);
 }
 
 export function getMovieIdentity(movie) {
