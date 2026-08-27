@@ -29,6 +29,14 @@ function hasValidPoster(movie) {
 
 export function getMovieIdentity(movie) {
   if (!movie) return '';
+  const title = String(movie.title || movie.Title || '')
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, ' ');
+  const year = String(movie.year || movie.Year || '').trim();
+  if (title) {
+    return `title-${title}-${year}`;
+  }
   if (movie.imdbID || movie.imdbId) {
     const imdb = String(movie.imdbID || movie.imdbId).trim().toLowerCase();
     if (imdb && imdb !== 'n/a' && imdb !== 'null' && imdb !== 'undefined') {
@@ -41,12 +49,7 @@ export function getMovieIdentity(movie) {
   if (movie.tmdb_id || movie.tmdbId) {
     return `tmdb-${movie.tmdb_id || movie.tmdbId}`;
   }
-  const title = String(movie.title || movie.Title || '')
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, ' ');
-  const year = String(movie.year || movie.Year || '').trim();
-  return `title-${title}-${year}`;
+  return '';
 }
 
 function getStoredHomeCatalogue() {
@@ -208,7 +211,7 @@ export default function Home({
     let isMounted = true;
 
     const loadRecommendations = async () => {
-      if (!recommended) {
+      if (!recommended || recommended.length < 4) {
         setLoadingRecs(true);
       }
 
@@ -230,14 +233,18 @@ export default function Home({
         const validRecs = (enrichedRecommendations || []).filter(hasValidPoster);
         const finalRecs = validRecs.length > 0 ? validRecs : (rankedRecommendations || []).filter(hasValidPoster);
 
-        // Merge with fallback catalogue pool to guarantee full carousel (prevent visual jumps)
-        const fallbackList = (FALLBACK_CATALOGUE.recommended || []).filter(hasValidPoster);
+        // Merge with home catalogue recommendations and fallback pool to guarantee a full carousel (8-15 cards)
+        const additionalPool = [
+          ...(catalogueData?.recommended || []),
+          ...(FALLBACK_CATALOGUE.recommended || [])
+        ].filter(hasValidPoster);
+
         const existingKeys = new Set(finalRecs.map(getMovieIdentity));
 
-        for (const fb of fallbackList) {
-          const key = getMovieIdentity(fb);
+        for (const item of additionalPool) {
+          const key = getMovieIdentity(item);
           if (key && !existingKeys.has(key)) {
-            finalRecs.push(fb);
+            finalRecs.push(item);
             existingKeys.add(key);
           }
         }
@@ -245,27 +252,32 @@ export default function Home({
         cachedRecommendations = finalRecs;
         setStoredRecommendations(finalRecs);
 
-        const oldRecKeys = (recommended || []).map(getMovieIdentity).join(',');
-        const newRecKeys = finalRecs.map(getMovieIdentity).join(',');
-
-        if (!recommended || oldRecKeys !== newRecKeys) {
+        if (isMounted) {
           setRecommended(finalRecs);
         }
       } catch (error) {
         console.error('Recommendation loading failed:', error);
-        if (!recommended && isMounted) {
-          const fallback = (FALLBACK_CATALOGUE.recommended || []).filter(hasValidPoster);
-          cachedRecommendations = fallback;
-          setRecommended(fallback);
+        if (isMounted) {
+          const fallbackPool = [
+            ...(catalogueData?.recommended || []),
+            ...(FALLBACK_CATALOGUE.recommended || [])
+          ].filter(hasValidPoster);
+
+          if (fallbackPool.length > 0) {
+            cachedRecommendations = fallbackPool;
+            setRecommended(fallbackPool);
+          }
         }
       } finally {
-        if (isMounted) setLoadingRecs(false);
+        if (isMounted) {
+          setLoadingRecs(false);
+        }
       }
     };
 
     loadRecommendations();
     return () => { isMounted = false; };
-  }, []);
+  }, [catalogueData]);
 
   // =====================================================
   // CATEGORY PAGE FILTER
@@ -284,6 +296,10 @@ export default function Home({
       'top-rated': {
         key: 'top_rated',
         title: '⭐ Top Rated Movies'
+      },
+      explore: {
+        key: 'top_rated',
+        title: '🧭 Explore Movies'
       }
     };
 
@@ -355,57 +371,79 @@ export default function Home({
     {
       key: 'trending',
       title: '🔥 Trending Now',
-      source: catalogueData?.trending || []
+      source: (catalogueData?.trending && catalogueData.trending.length > 0)
+        ? catalogueData.trending
+        : (FALLBACK_CATALOGUE.trending || [])
     },
     {
       key: 'top_rated',
       title: '⭐ Top Rated',
-      source: catalogueData?.top_rated || []
+      source: (catalogueData?.top_rated && catalogueData.top_rated.length > 0)
+        ? catalogueData.top_rated
+        : (FALLBACK_CATALOGUE.top_rated || [])
     },
     {
       key: 'blockbusters',
       title: '💥 Blockbusters',
-      source: catalogueData?.blockbusters || []
+      source: (catalogueData?.blockbusters && catalogueData.blockbusters.length > 0)
+        ? catalogueData.blockbusters
+        : (FALLBACK_CATALOGUE.blockbusters || [])
     },
     {
       key: 'action',
       title: '🔥 Action & Thriller',
-      source: catalogueData?.action || []
+      source: (catalogueData?.action && catalogueData.action.length > 0)
+        ? catalogueData.action
+        : (FALLBACK_CATALOGUE.action || [])
     },
     {
       key: 'romance',
       title: '❤️ Romance',
-      source: catalogueData?.romance || []
+      source: (catalogueData?.romance && catalogueData.romance.length > 0)
+        ? catalogueData.romance
+        : (FALLBACK_CATALOGUE.romance || [])
     },
     {
       key: 'drama',
       title: '🎭 Drama',
-      source: catalogueData?.drama || []
+      source: (catalogueData?.drama && catalogueData.drama.length > 0)
+        ? catalogueData.drama
+        : (FALLBACK_CATALOGUE.drama || [])
     },
     {
       key: 'crime',
       title: '🔎 Crime & Mystery',
-      source: catalogueData?.crime || []
+      source: (catalogueData?.crime && catalogueData.crime.length > 0)
+        ? catalogueData.crime
+        : (FALLBACK_CATALOGUE.crime || [])
     },
     {
       key: 'comedy',
       title: '😂 Comedy',
-      source: catalogueData?.comedy || []
+      source: (catalogueData?.comedy && catalogueData.comedy.length > 0)
+        ? catalogueData.comedy
+        : (FALLBACK_CATALOGUE.comedy || [])
     },
     {
       key: 'family',
       title: '👨‍👩‍👧 Family Entertainment',
-      source: catalogueData?.family || []
+      source: (catalogueData?.family && catalogueData.family.length > 0)
+        ? catalogueData.family
+        : (FALLBACK_CATALOGUE.family || [])
     },
     {
       key: 'award_winning',
       title: '🏆 Award Winning',
-      source: catalogueData?.award_winning || []
+      source: (catalogueData?.award_winning && catalogueData.award_winning.length > 0)
+        ? catalogueData.award_winning
+        : (FALLBACK_CATALOGUE.award_winning || [])
     },
     {
       key: 'hidden_gems',
       title: '💎 Hidden Gems',
-      source: catalogueData?.hidden_gems || []
+      source: (catalogueData?.hidden_gems && catalogueData.hidden_gems.length > 0)
+        ? catalogueData.hidden_gems
+        : (FALLBACK_CATALOGUE.hidden_gems || [])
     }
   ];
 

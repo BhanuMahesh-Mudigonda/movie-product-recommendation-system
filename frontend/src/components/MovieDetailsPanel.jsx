@@ -68,84 +68,16 @@ export default function MovieDetailsPanel({
     fetchMetaAndSimilar();
   }, [isOpen, movie]);
 
-  if (!isOpen || !movie) return null;
-
-  const isExternal = Boolean(
-    movie?.isExternal ??
-    movie?.external ??
-    movie?.isTMDB ??
-    movie?.isOmdb ??
-    movie?.is_external ??
-    false
-  );
-
-  const title = movie?.title || movie?.Title || movie?.name || 'Untitled Movie';
-  const year = movie?.year || movie?.Year || movie?.release_year || '';
-  const rating = movie?.rating || movie?.imdbRating || movie?.vote_average || 'N/A';
-
-  const rawGenre = movie?.genres || movie?.genre || movie?.Genre || '';
-  const genres = Array.isArray(rawGenre)
-    ? rawGenre
-    : (typeof rawGenre === 'string'
-      ? rawGenre.replace(/\|/g, ',').split(',').map(g => g.trim()).filter(Boolean)
-      : []);
-
-  const overview =
-    movie?.overview ||
-    movie?.Plot ||
-    movie?.description ||
-    'Detailed narrative context for this title is currently being ingested into MovieMind.';
-
-  const posterUrl =
-    movie?.poster ||
-    movie?.Poster ||
-    movie?.poster_url ||
-    movie?.posterUrl ||
-    movie?.image ||
-    null;
-
-  const backdropUrl =
-    movie?.backdrop ||
-    movie?.backdrop_path ||
-    movie?.backdropUrl ||
-    posterUrl;
-
-  const score = movie?.score || movie?.recommendationScore || 0;
-  const rawScorePercent = score > 1 ? Math.round(score) : Math.round(score * 100);
-  const matchPercent = Math.min(98, Math.max(78, rawScorePercent > 0 ? rawScorePercent : 88 + (title.length % 10)));
-
-  const finalCast = Array.isArray(enrichedMeta?.cast) && enrichedMeta.cast.length > 0
-    ? enrichedMeta.cast
-    : (Array.isArray(movie?.cast) && movie.cast.length > 0 ? movie.cast : []);
-
-  const finalDirector = enrichedMeta?.director || movie?.director || '';
-
-  const handleToggleFav = () => {
-    const normalized = normalizeMovie(movie) || movie;
-    if (!normalized) return;
-    const added = userStorage.toggleFavourite(normalized);
-    setIsFav(added);
-    if (added && showToast) showToast('Added to your cinema vault', 'favourite');
-  };
-
-  const handleToggleWatch = () => {
-    const normalized = normalizeMovie(movie) || movie;
-    if (!normalized) return;
-    const added = userStorage.isInWatchlist(normalized.movieId);
-    userStorage.toggleWatchlist(normalized);
-    setIsWatch(!added);
-    if (!added && showToast) showToast('Saved to your watchlist', 'watchlist');
-  };
-
   return (
     <AnimatePresence>
-      <motion.div
-        className="details-modal-overlay"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-      >
+      {isOpen && movie && (
+        <motion.div
+          className="details-modal-overlay"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+        >
         <motion.div
           className="details-modal-container"
           onClick={(e) => e.stopPropagation()}
@@ -370,6 +302,7 @@ export default function MovieDetailsPanel({
           />
         </motion.div>
       </motion.div>
+      )}
     </AnimatePresence>
   );
 }

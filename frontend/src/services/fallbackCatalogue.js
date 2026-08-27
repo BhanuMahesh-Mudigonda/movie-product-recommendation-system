@@ -541,6 +541,69 @@ export const FALLBACK_CATALOGUE = {
       genres: ['Sci-Fi', 'Adventure'],
       language: 'English',
       poster: 'https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg'
+    },
+    {
+      movieId: 'm_inception',
+      title: 'Inception',
+      year: '2010',
+      rating: 8.8,
+      genres: ['Sci-Fi', 'Action'],
+      language: 'English',
+      poster: 'https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg'
+    },
+    {
+      movieId: 'm_fightclub',
+      title: 'Fight Club',
+      year: '1999',
+      rating: 8.8,
+      genres: ['Drama'],
+      language: 'English',
+      poster: 'https://m.media-amazon.com/images/M/MV5BOTgyOGQ1NDItNGU3Ny00MjU3LTg2YWEtNmEyYjBiMjI1Y2M5XkEyXkFqcGc@._V1_QL75_UX380_CR0,4,380,562_.jpg'
+    },
+    {
+      movieId: 'm_forrestgump',
+      title: 'Forrest Gump',
+      year: '1994',
+      rating: 8.8,
+      genres: ['Drama', 'Romance'],
+      language: 'English',
+      poster: 'https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_QL75_UY562_CR4,0,380,562_.jpg'
+    },
+    {
+      movieId: 'm_darkknight',
+      title: 'The Dark Knight',
+      year: '2008',
+      rating: 9.0,
+      genres: ['Action', 'Crime', 'Drama'],
+      language: 'English',
+      poster: 'https://m.media-amazon.com/images/M/MV5BMTMxNTMwODM0NF5BMl5BanBnXkFtZTcwODAyMTk2Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg'
+    },
+    {
+      movieId: 'm_kancharapalem',
+      title: 'C/o Kancharapalem',
+      year: '2018',
+      rating: 8.9,
+      genres: ['Drama', 'Romance'],
+      language: 'Telugu',
+      poster: 'https://m.media-amazon.com/images/M/MV5BZjYyM2UwMGQtMjI4YS00Y2U4LTllOWItYjIzODlhZThlMDc2XkEyXkFqcGc@._V1_SX300.jpg'
+    },
+    {
+      movieId: 'm_soorarai',
+      title: 'Soorarai Pottru',
+      year: '2020',
+      rating: 8.7,
+      genres: ['Action', 'Drama'],
+      language: 'Tamil',
+      poster: 'https://m.media-amazon.com/images/M/MV5BZTU5NTNmMjAtODM0Mi00YzU5LTk1OWQtZWU1NzZhMzBjYjY1XkEyXkFqcGc@._V1_SX300.jpg'
+    },
+    {
+      movieId: 'm_jaibhim',
+      title: 'Jai Bhim',
+      year: '2021',
+      rating: 8.8,
+      genres: ['Crime', 'Drama'],
+      language: 'Tamil',
+      poster: 'https://m.media-amazon.com/images/M/MV5BZjEyNDIzNmEtMjdkYS00ZDAwLTljOWYtNDRhYTVhYTlmOTk1XkEyXkFqcGc@._V1_SX300.jpg'
     }
   ]
 };

@@ -1,0 +1,6 @@
+{
+  "evaluation": "held-out product-title category retrieval proxy",
+  "samples": 120,
+  "precision_at_5": 0.4017,
+  "mrr_at_10": 0.5659
+}

@@ -1,0 +1,90 @@
+.product-switcher-container {
+  display: inline-flex;
+  align-items: center;
+  user-select: none;
+}
+
+.product-switcher-pill {
+  display: flex;
+  align-items: center;
+  background: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 9999px;
+  padding: 3px;
+  gap: 2px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.switcher-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  cursor: pointer;
+  outline: none;
+  transition: color 0.2s ease;
+  color: rgba(248, 250, 252, 0.65);
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.switcher-btn:hover {
+  color: #ffffff;
+}
+
+.switcher-btn.active {
+  color: #ffffff;
+}
+
+.switcher-active-bg {
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  z-index: 1;
+}
+
+.movies-bg {
+  background: linear-gradient(135deg, #e50914 0%, #b81d24 100%);
+  box-shadow: 0 2px 10px rgba(229, 9, 20, 0.45);
+}
+
+.products-bg {
+  background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #d946ef 100%);
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.45);
+}
+
+.switcher-content {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.switcher-icon {
+  flex-shrink: 0;
+}
+
+.switcher-label {
+  line-height: 1;
+}
+
+.switcher-badge {
+  font-size: 0.62rem;
+  padding: 1px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}

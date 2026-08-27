@@ -51,3 +51,14 @@ ml/backend/discovery_engine_v*
 # Antigravity IDE temporary artifacts
 .antigravity/
 .brain/
+
+# Product recommendation generated/runtime files
+product-recommendation/__pycache__/
+product-recommendation/*.db
+product-recommendation/users.db
+product-recommendation/**/*.pyc
+
+# Product recommendation raw training datasets
+product-recommendation/products.csv
+product-recommendation/reviews.csv
+product-recommendation/electronics_product.csv
