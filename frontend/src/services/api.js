@@ -1,7 +1,7 @@
 import { normalizeMovie } from '../utils/movieUtils.js';
 
 const rawBaseUrl =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_API_BASE_URL) || '/api';
+  (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_API_BASE_URL || import.meta.env?.VITE_API_URL)) || '/api';
 
 export const API_BASE_URL = rawBaseUrl.replace(/\/+$/, '');
 

@@ -1,5 +1,5 @@
 const PRODUCT_API_BASE_URL =
-  (typeof import.meta !== 'undefined' && import.meta.env?.VITE_PRODUCT_API_BASE_URL) ||
+  (typeof import.meta !== 'undefined' && (import.meta.env?.VITE_PRODUCT_API_BASE_URL || import.meta.env?.VITE_PRODUCT_API_URL)) ||
   '/product-api';
 
 function normalizeDepartment(dept) {
