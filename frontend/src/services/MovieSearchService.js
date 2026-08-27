@@ -121,7 +121,7 @@ class MovieSearchService {
         );
 
       const catalogueMovies =
-        catalogueResponse?.movies || [];
+        catalogueResponse?.movies || (Array.isArray(catalogueResponse) ? catalogueResponse : []);
 
       if (
         Array.isArray(catalogueMovies) &&

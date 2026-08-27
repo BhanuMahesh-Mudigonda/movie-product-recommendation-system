@@ -15,7 +15,9 @@ export class InternalMovieProvider {
     try {
       const data = await api.searchMovies(query, 30);
 
-      return (Array.isArray(data) ? data : [])
+      const moviesList = data?.movies || (Array.isArray(data) ? data : []);
+
+      return moviesList
         .map(movie => {
           const normalized = normalizeMovie(movie);
 
