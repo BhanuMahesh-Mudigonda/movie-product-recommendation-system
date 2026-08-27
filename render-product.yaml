@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: moviemind-product-api
+    env: python
+    buildCommand: pip install -r product-recommendation/requirements.txt
+    startCommand: uvicorn app:app --app-dir product-recommendation --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.0

@@ -5,8 +5,8 @@ ROOT_DIR = Path(__file__).resolve().parents[2]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
-from catalogue_engine import catalogue_engine
-from discovery_engine import search_discovery_movies
+from ml.backend.catalogue_engine import catalogue_engine
+from ml.backend.discovery_engine import search_discovery_movies
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import joblib
