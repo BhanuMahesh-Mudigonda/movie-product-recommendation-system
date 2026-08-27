@@ -354,7 +354,45 @@ def movie_matches_language(movie, language_code):
 # POSTER HELPERS
 # =========================================================
 
+HIGH_RES_POSTERS = {
+    "baahubali 2": "https://m.media-amazon.com/images/M/MV5BYWQ4YmNjYjEtOWE1Zi00Y2U4LWI4NTAtMTU0MjkxNWQ1ZmJiXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "baahubali 2: the conclusion": "https://m.media-amazon.com/images/M/MV5BYWQ4YmNjYjEtOWE1Zi00Y2U4LWI4NTAtMTU0MjkxNWQ1ZmJiXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "kalki 2898 ad": "https://m.media-amazon.com/images/M/MV5BN2RjZDJhYzUtOTQ5Yy00OWVmLWE0OTgtM2YyNDBmMWYxOTE5XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "rrr": "https://m.media-amazon.com/images/M/MV5BODUwNDNjYzctODUxNy00ZTA2LWIyMDctMGEwMjUzMGNmOWZjXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "pushpa: the rise": "https://m.media-amazon.com/images/M/MV5BMmQ4YjY5YmItYmJiYi00MjJjLThjZmEtNmE0YjFhMWZlNTU4XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "pushpa 2: the rule": "https://m.media-amazon.com/images/M/MV5BNzdiNDU4NjUtNmNjMi00YTc5LTk0OTQtNjY4ODQzMDUzYmI4XkEyXkFqcGc@._V1_SX300.jpg",
+    "salaar: part 1 – ceasefire": "https://m.media-amazon.com/images/M/MV5BMmU4MmU5MDgtZWZiZi00NzdhLWE2NGEtNGJmMDY1OTFjYjZhXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "hi nanna": "https://m.media-amazon.com/images/M/MV5BYzA4MzA2ZDAtNDRjMy00OTI5LWJhOGItYTIzYzM3MTZhYWFjXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "sita ramam": "https://m.media-amazon.com/images/M/MV5BMTExNmZhOWItMjFkOC00Uy00ZDRhXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "shyam singha roy": "https://m.media-amazon.com/images/M/MV5BMTBhNGM2N2ItYTY4MS00MTgzLTk3YzAtNDdmMWU2MmI4MjFjXkEyXkFqcGc@._V1_SX300.jpg",
+    "arjun reddy": "https://m.media-amazon.com/images/M/MV5BMTk4ZTExY2ItMDhiNy00OWVlLTg0YTAtM2MzNTBiMmFjNzNhXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "jersey": "https://m.media-amazon.com/images/M/MV5BN2NlMmFlYTctMGI4My00M2VmLTg0N2MtZTE3N2NlZjdjMjEzXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "ala vaikunthapurramuloo": "https://m.media-amazon.com/images/M/MV5BYzA4MzA2ZDAtNDRjMy00OTI5LWJhOGItYTIzYzM3MTZhYWFjXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "rangasthalam": "https://m.media-amazon.com/images/M/MV5BNzVlY2MwOWEtZTMzMS00YzFiLTg2M2YtMzc4YjE0ZDFmN2RjXkEyXkFqcGc@._V1_SX300.jpg",
+    "eega": "https://m.media-amazon.com/images/M/MV5BMjA4NzIwNTc0MV5BMl5BanBnXkFtZTcwOTE0NTg4OA@@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "mahanati": "https://m.media-amazon.com/images/M/MV5BZWVkYmM2NGMtMTY1MS00YjVmLWJkMDktY2ZhYzg1MmEzODRjXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "gladiator": "https://m.media-amazon.com/images/M/MV5BYWQ4YmNjYjEtOWE1Zi00Y2U4LWI4NTAtMTU0MjkxNWQ1ZmJiXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "avatar": "https://m.media-amazon.com/images/M/MV5BYjhiNjBlODctN2ZiOC00YjVlLWFlNzAtNTVhYYM1NmJhZjgwXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "titanic": "https://m.media-amazon.com/images/M/MV5BYzYyN2FiZmItY2U3Ny00NWU1LTgwYjAtODY4ZThiODA4NzgxXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "good will hunting": "https://m.media-amazon.com/images/M/MV5BOTI0MzcxMTYtZDVkMy00NjY1LTgyMDAtNWZlNDIzYGIyNGJmXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "mad max: fury road": "https://m.media-amazon.com/images/M/MV5BN2EwM2I5OWMtMGQyMi00MDhhLTlhOWItY2ViMjU4N2ZmNWNmXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "finding nemo": "https://m.media-amazon.com/images/M/MV5BZTAzNWZlNWTtZDAzMi00NDc3LWI3N2QtYmE5MmZmMWFhNWJhXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "schindler's list": "https://m.media-amazon.com/images/M/MV5BNDE4OTMxMTctNmRhYy00NWE2LTg3ZDItZjBmNWJhZGYxOWM3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "saving private ryan": "https://m.media-amazon.com/images/M/MV5BZjhkMDM4MWItZDA4OC00MzVkLTgwNWItNWYyOGQ3ZjgwMWMyXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "braveheart": "https://m.media-amazon.com/images/M/MV5BM2MyNjYxNmUtYTAwNi00MTYxLWJmNWYtYzZlODY3ZTk3OTFlXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "star wars: episode v - the empire strikes back": "https://m.media-amazon.com/images/M/MV5BMTkxNGFlNDktZmJkNC00MDdhLTg0MTEtZjZiYWVjNmJhOTA2XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "star wars: episode iv - a new hope": "https://m.media-amazon.com/images/M/MV5BOTA5NjhiOTAtZWM0ZC00MWNhLThiMzEtZDFkOTk2OTU1ZDJkXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "star wars: episode vi - return of the jedi": "https://m.media-amazon.com/images/M/MV5BOWZlMjFiYzAtYTlhMy00NzA2LWE5NjAtZmQwMzhjM2FkZDUzXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "inception": "https://m.media-amazon.com/images/M/MV5BMjAxMzY3NjcxNF5BMl5BanBnXkFtZTcwNTI5OTM0Mw@@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "interstellar": "https://m.media-amazon.com/images/M/MV5BYzdjMDAxZGItMjI2My00ODA1LTlkNzItOWFjMDU5ZDJlYWY3XkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "fight club": "https://m.media-amazon.com/images/M/MV5BOTgyOGQ1NDItNGU3Ny00MjU3LTg2YWEtNmEyYjBiMjI1ZDgwXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg",
+    "forrest gump": "https://m.media-amazon.com/images/M/MV5BNDYwNzVjMTItZmU5YS00YjQ5LTljYjgtMjY2NDVmYWMyNWFmXkEyXkFqcGc@._V1_QL75_UX380_CR0,0,380,562_.jpg"
+}
+
 def get_movie_poster(movie):
+    title_norm = str(movie.get("title") or movie.get("Title") or "").lower().strip()
+    if title_norm in HIGH_RES_POSTERS:
+        return HIGH_RES_POSTERS[title_norm]
 
     poster = (
         movie.get("Poster")
@@ -1204,20 +1242,20 @@ def get_home_movies(
     # -----------------------------------------------------
 
     priority_titles = [
-        "salaar",
+        "baahubali 2",
         "baahubali",
         "bahubali",
-        "kgf",
-        "pushpa",
         "rrr",
-        "kalki",
-        "devara",
         "arjun reddy",
-        "eega",
-        "magadheera",
+        "jersey",
         "ala vaikunthapurramuloo",
-        "sye",
-        "jersey"
+        "rangasthalam",
+        "eega",
+        "kalki",
+        "salaar",
+        "pushpa",
+        "kgf",
+        "devara"
     ]
 
 
