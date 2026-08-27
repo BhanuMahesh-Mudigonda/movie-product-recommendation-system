@@ -1016,6 +1016,7 @@ def get_home_movies(
     if movie_metadata.empty:
         return {
             "hero": [],
+            "telugu_blockbusters": [],
             "recommended": [],
             "trending": [],
             "new_releases": [],
@@ -1434,6 +1435,53 @@ def get_home_movies(
 
 
     # -----------------------------------------------------
+    # TELUGU BLOCKBUSTERS
+    # -----------------------------------------------------
+
+    telugu_priority_keywords = [
+        "rrr", "baahubali", "bahubali", "pushpa", "salaar", "kalki", "devara",
+        "arjun reddy", "jersey", "ala vaikunthapurramuloo", "rangasthalam",
+        "eega", "sita ramam", "dasara", "sarileru neekevvaru", "maharshi",
+        "bharath ane nenu", "aravindha sametha", "race gurram", "janatha garage",
+        "mahanati", "c/o kancharapalem", "fidaa", "ye maaya chesave", "bommarillu"
+    ]
+
+    def telugu_blockbuster_score(row):
+        title = movie_title(row).lower()
+        language = movie_language(row)
+        score = 0
+        if "telugu" in language:
+            score += 1000
+        for index, keyword in enumerate(telugu_priority_keywords):
+            if keyword in title:
+                score += (len(telugu_priority_keywords) - index) * 100
+        return score
+
+    telugu_metadata = movie_metadata[
+        movie_metadata.apply(
+            lambda row: "telugu" in movie_language(row) or any(k in movie_title(row).lower() for k in telugu_priority_keywords),
+            axis=1
+        )
+    ].copy()
+
+    telugu_metadata["_telugu_score"] = telugu_metadata.apply(
+        telugu_blockbuster_score,
+        axis=1
+    )
+
+    telugu_df = telugu_metadata.sort_values(
+        ["_telugu_score", "_rating", "_votes"],
+        ascending=[False, False, False]
+    )
+
+    telugu_blockbusters = prepare_unique_movies(
+        telugu_df,
+        limit,
+        "Top Telugu Blockbuster selection"
+    )
+
+
+    # -----------------------------------------------------
     # RECOMMENDED
     # -----------------------------------------------------
 
@@ -1839,6 +1887,7 @@ def get_home_movies(
 
     all_current_categories = {
         "hero": hero,
+        "telugu_blockbusters": telugu_blockbusters,
         "recommended": recommended,
         "trending": trending_movies,
         "new_releases": new_releases,
@@ -2048,6 +2097,7 @@ def get_home_movies(
 
     return {
         "hero": hero,
+        "telugu_blockbusters": telugu_blockbusters,
         "recommended": recommended,
         "trending": trending_movies,
         "new_releases": new_releases,

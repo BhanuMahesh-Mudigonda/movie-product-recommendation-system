@@ -128,86 +128,95 @@ class UniversalMovieResolver:
                 unified["imdbID"] = val
                 
         # Format OMDB/TMDB search fallback if imdbID still missing but we have title
-        if not unified["imdbID"] and unified["title"]:
-            # Maybe OMDB can find it by title and year
-            omdb_data = get_movie_details(unified["title"], year=unified["year"])
-            if omdb_data and omdb_data.get("Response") == "True" and omdb_data.get("imdbID"):
-                unified["imdbID"] = omdb_data.get("imdbID")
-                # Pre-fill some OMDB data since we just fetched it
-                for field, omdb_key in [
-                    ("poster", "Poster"),
-                    ("imdbRating", "imdbRating"),
-                    ("genre", "Genre"),
-                    ("director", "Director"),
-                    ("cast", "Actors"),
-                    ("runtime", "Runtime"),
-                    ("language", "Language"),
-                    ("country", "Country"),
-                    ("plot", "Plot")
-                ]:
-                    val = omdb_data.get(omdb_key)
-                    if val and val != "N/A" and not unified[field]:
-                        unified[field] = val
-                        
-            # If OMDB failed (e.g. key expired), try TMDB search
-            if not unified["imdbID"] and not unified["poster"]:
-                tmdb_search = search_tmdb_by_title(unified["title"], year=unified["year"])
-                if tmdb_search:
-                    unified["tmdb_id"] = tmdb_search.get("id")
-                    if tmdb_search.get("poster_path") and not unified["poster"]:
-                        unified["poster"] = f"https://image.tmdb.org/t/p/w500{tmdb_search['poster_path']}"
-                    if tmdb_search.get("overview") and not unified["plot"]:
-                        unified["plot"] = tmdb_search.get("overview")
-                    if tmdb_search.get("vote_average") and not unified["imdbRating"]:
-                        unified["imdbRating"] = str(round(tmdb_search.get("vote_average"), 1))
-        
-        # 3. OMDB Details (Priority 3/4)
-        if unified["imdbID"]:
-            omdb_data = get_movie_details(unified["imdbID"])
-            if omdb_data:
-                for field, omdb_key in [
-                    ("poster", "Poster"),
-                    ("imdbRating", "imdbRating"),
-                    ("genre", "Genre"),
-                    ("director", "Director"),
-                    ("cast", "Actors"),
-                    ("runtime", "Runtime"),
-                    ("language", "Language"),
-                    ("country", "Country"),
-                    ("plot", "Plot"),
-                    ("title", "Title"),
-                    ("year", "Year")
-                ]:
-                    val = omdb_data.get(omdb_key)
-                    if val and val != "N/A":
-                        if not unified[field] or (field == "poster" and not unified[field].startswith("http")):
+        try:
+            if not unified["imdbID"] and unified["title"]:
+                # Maybe OMDB can find it by title and year
+                omdb_data = get_movie_details(unified["title"], year=unified["year"])
+                if omdb_data and omdb_data.get("Response") == "True" and omdb_data.get("imdbID"):
+                    unified["imdbID"] = omdb_data.get("imdbID")
+                    # Pre-fill some OMDB data since we just fetched it
+                    for field, omdb_key in [
+                        ("poster", "Poster"),
+                        ("imdbRating", "imdbRating"),
+                        ("genre", "Genre"),
+                        ("director", "Director"),
+                        ("cast", "Actors"),
+                        ("runtime", "Runtime"),
+                        ("language", "Language"),
+                        ("country", "Country"),
+                        ("plot", "Plot")
+                    ]:
+                        val = omdb_data.get(omdb_key)
+                        if val and val != "N/A" and not unified[field]:
                             unified[field] = val
                             
+                # If OMDB failed (e.g. key expired), try TMDB search
+                if not unified["imdbID"] and not unified["poster"]:
+                    tmdb_search = search_tmdb_by_title(unified["title"], year=unified["year"])
+                    if tmdb_search:
+                        unified["tmdb_id"] = tmdb_search.get("id")
+                        if tmdb_search.get("poster_path") and not unified["poster"]:
+                            unified["poster"] = f"https://image.tmdb.org/t/p/w500{tmdb_search['poster_path']}"
+                        if tmdb_search.get("overview") and not unified["plot"]:
+                            unified["plot"] = tmdb_search.get("overview")
+                        if tmdb_search.get("vote_average") and not unified["imdbRating"]:
+                            unified["imdbRating"] = str(round(tmdb_search.get("vote_average"), 1))
+        except Exception as e:
+            print(f"[RESOLVER EXTERNAL SEARCH ERROR] {unified.get('title')}: {e}")
+
+        # 3. OMDB Details (Priority 3/4)
+        try:
+            if unified["imdbID"]:
+                omdb_data = get_movie_details(unified["imdbID"])
+                if omdb_data:
+                    for field, omdb_key in [
+                        ("poster", "Poster"),
+                        ("imdbRating", "imdbRating"),
+                        ("genre", "Genre"),
+                        ("director", "Director"),
+                        ("cast", "Actors"),
+                        ("runtime", "Runtime"),
+                        ("language", "Language"),
+                        ("country", "Country"),
+                        ("plot", "Plot"),
+                        ("title", "Title"),
+                        ("year", "Year")
+                    ]:
+                        val = omdb_data.get(omdb_key)
+                        if val and val != "N/A":
+                            if not unified[field] or (field == "poster" and not unified[field].startswith("http")):
+                                unified[field] = val
+        except Exception as e:
+            print(f"[RESOLVER OMDB ERROR] {unified.get('imdbID')}: {e}")
+                            
         # 4. TMDB Details (Priority 5 for trailer/watch-providers/posters)
-        tmdb_id = unified.get("tmdb_id")
-        if not tmdb_id and unified["imdbID"]:
-            tmdb_id = get_tmdb_id_from_imdb(unified["imdbID"])
-            
-        if tmdb_id:
-            tmdb_data = get_tmdb_movie_details(tmdb_id)
-            if tmdb_data:
-                # Poster fallback
-                if not unified["poster"] and tmdb_data.get("poster_path"):
-                    unified["poster"] = f"https://image.tmdb.org/t/p/w500{tmdb_data['poster_path']}"
+        try:
+            tmdb_id = unified.get("tmdb_id")
+            if not tmdb_id and unified["imdbID"]:
+                tmdb_id = get_tmdb_id_from_imdb(unified["imdbID"])
                 
-                # Backdrop
-                if tmdb_data.get("backdrop_path"):
-                    unified["backdrop_path"] = tmdb_data["backdrop_path"]
-                
-                # Watch providers
-                providers = extract_watch_providers(tmdb_data)
-                if providers:
-                    unified["whereToWatch"] = providers
+            if tmdb_id:
+                tmdb_data = get_tmdb_movie_details(tmdb_id)
+                if tmdb_data:
+                    # Poster fallback
+                    if not unified["poster"] and tmdb_data.get("poster_path"):
+                        unified["poster"] = f"https://image.tmdb.org/t/p/w500{tmdb_data['poster_path']}"
                     
-                # Trailer
-                trailer = extract_trailer(tmdb_data)
-                if trailer:
-                    unified["trailer"] = trailer
+                    # Backdrop
+                    if tmdb_data.get("backdrop_path"):
+                        unified["backdrop_path"] = tmdb_data["backdrop_path"]
+                    
+                    # Watch providers
+                    providers = extract_watch_providers(tmdb_data)
+                    if providers:
+                        unified["whereToWatch"] = providers
+                        
+                    # Trailer
+                    trailer = extract_trailer(tmdb_data)
+                    if trailer:
+                        unified["trailer"] = trailer
+        except Exception as e:
+            print(f"[RESOLVER TMDB ERROR] {unified.get('title')}: {e}")
 
         # Cache the result
         if cache_key:

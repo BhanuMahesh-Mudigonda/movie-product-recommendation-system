@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Sparkles, Star, Heart, Bookmark, Eye } from 'lucide-react';
-import FallbackPoster from './FallbackPoster';
 import { normalizeMovie } from '../utils/movieUtils';
 import { userStorage } from '../services/userStorage';
 import { movieMindBrain } from '../services/movieMindBrain';
@@ -29,7 +28,13 @@ export default function MovieCard({ movie, onClick, rank }) {
   const rawScorePercent = score > 1 ? Math.round(score) : Math.round(score * 100);
   const matchPercent = Math.min(98, Math.max(78, rawScorePercent > 0 ? rawScorePercent : 85 + (title.length % 11)));
 
-  const isInvalidPoster = !poster || poster === 'N/A' || poster === 'null' || poster === 'undefined' || poster === 'none';
+  const isInvalidPoster =
+    !poster ||
+    poster === 'N/A' ||
+    poster === 'null' ||
+    poster === 'undefined' ||
+    poster === 'none';
+
   if (isInvalidPoster || imageError) {
     return null;
   }

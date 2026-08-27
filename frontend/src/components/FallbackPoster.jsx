@@ -17,11 +17,18 @@ const generateColors = (str) => {
   };
 };
 
-export default function FallbackPoster({ title, genres }) {
+export default function FallbackPoster({ title, year, genres }) {
   if (!title) title = "Unknown Movie";
+
+  const safeGenres = Array.isArray(genres)
+    ? genres.join(' | ')
+    : String(genres || '');
+
   const { color1, color2, color3 } = generateColors(title);
-  
-  const displayGenre = genres ? genres.split('|')[0] : 'Cinema';
+
+  const displayGenre = safeGenres
+    ? safeGenres.split(/[|,]/)[0].trim()
+    : 'Cinema';
 
   return (
     <div 

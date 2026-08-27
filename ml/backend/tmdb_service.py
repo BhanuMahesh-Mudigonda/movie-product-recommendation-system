@@ -29,11 +29,20 @@ def is_tmdb_configured():
 
 
 # --------------------------------------------------
+# FAILURE CACHE FOR RESILIENCE
+# --------------------------------------------------
+_FAILED_TMDB_LOOKUPS = set()
+
+# --------------------------------------------------
 # SEARCH MOVIE BY TITLE
 # --------------------------------------------------
 
 def search_tmdb_by_title(title: str, year: str = None):
     if not is_tmdb_configured() or not title:
+        return None
+
+    cache_key = f"title_{title}_{year}"
+    if cache_key in _FAILED_TMDB_LOOKUPS:
         return None
 
     try:
@@ -49,7 +58,7 @@ def search_tmdb_by_title(title: str, year: str = None):
         response = httpx.get(
             f"{TMDB_BASE_URL}/search/movie",
             params=params,
-            timeout=45
+            timeout=3.0
         )
 
         response.raise_for_status()
@@ -63,6 +72,7 @@ def search_tmdb_by_title(title: str, year: str = None):
 
     except Exception as e:
         print(f"[TMDB SEARCH ERROR] {title}: {e}")
+        _FAILED_TMDB_LOOKUPS.add(cache_key)
 
     return None
 
@@ -75,6 +85,10 @@ def get_tmdb_id_from_imdb(imdb_id: str):
     if not is_tmdb_configured() or not imdb_id:
         return None
 
+    cache_key = f"imdb_{imdb_id}"
+    if cache_key in _FAILED_TMDB_LOOKUPS:
+        return None
+
     try:
         response = httpx.get(
             f"{TMDB_BASE_URL}/find/{imdb_id}",
@@ -82,7 +96,7 @@ def get_tmdb_id_from_imdb(imdb_id: str):
                 "api_key": TMDB_API_KEY,
                 "external_source": "imdb_id"
             },
-            timeout=45
+            timeout=3.0
         )
 
         response.raise_for_status()
@@ -96,6 +110,7 @@ def get_tmdb_id_from_imdb(imdb_id: str):
 
     except Exception as e:
         print(f"[TMDB IMDB LOOKUP ERROR] {imdb_id}: {e}")
+        _FAILED_TMDB_LOOKUPS.add(cache_key)
 
     return None
 
@@ -109,6 +124,10 @@ def get_tmdb_movie_details(tmdb_id: int):
     if not is_tmdb_configured() or not tmdb_id:
         return None
 
+    cache_key = f"tmdb_id_{tmdb_id}"
+    if cache_key in _FAILED_TMDB_LOOKUPS:
+        return None
+
     try:
         response = httpx.get(
             f"{TMDB_BASE_URL}/movie/{tmdb_id}",
@@ -116,7 +135,7 @@ def get_tmdb_movie_details(tmdb_id: int):
                 "api_key": TMDB_API_KEY,
                 "append_to_response": "credits,videos,watch/providers"
             },
-            timeout=45
+            timeout=3.0
         )
 
         response.raise_for_status()
@@ -125,6 +144,7 @@ def get_tmdb_movie_details(tmdb_id: int):
 
     except Exception as e:
         print(f"[TMDB DETAILS ERROR] {tmdb_id}: {e}")
+        _FAILED_TMDB_LOOKUPS.add(cache_key)
 
     return None
 

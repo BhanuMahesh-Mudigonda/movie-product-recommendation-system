@@ -16,7 +16,7 @@ export default function MovieCarousel({
     if (scrollRef.current) {
       scrollRef.current.scrollLeft = 0;
     }
-  }, [movies]);
+  }, [title]);
 
   const scroll = (direction) => {
     if (!scrollRef.current) return;
@@ -85,7 +85,9 @@ export default function MovieCarousel({
               key={
                 movie.movieId ||
                 movie.imdbID ||
-                `${movie.title}-${idx}`
+                movie.tmdb_id ||
+                movie.tmdbId ||
+                `${movie.title}-${movie.year || idx}`
               }
               movie={movie}
               onClick={handleMovieSelect}

@@ -109,7 +109,7 @@ def search_web_movie(query: str):
             response = httpx.get(
                 url,
                 headers=headers,
-                timeout=15,
+                timeout=3.0,
                 follow_redirects=True
             )
 
