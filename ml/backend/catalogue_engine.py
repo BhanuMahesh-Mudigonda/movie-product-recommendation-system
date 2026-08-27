@@ -93,7 +93,7 @@ class MovieMindCatalogueEngine:
                 self.movies[column] = pd.to_numeric(
                     self.movies[column],
                     errors="coerce"
-                )
+                ).astype(np.float32)
 
         # ----------------------------------------------------
         # SEARCH NORMALIZATION
@@ -112,6 +112,9 @@ class MovieMindCatalogueEngine:
             .astype(str)
             .apply(self.normalize_text)
         )
+
+        import gc
+        gc.collect()
 
         print("Search index created.")
 

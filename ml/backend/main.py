@@ -138,6 +138,10 @@ normalized_movie_latent_matrix = (
     movie_latent_matrix / _movie_norms
 )
 
+import gc
+del _movie_norms
+gc.collect()
+
 movies = pd.read_pickle(MODEL_DIR / "movies_metadata.pkl")
 
 user_id_to_index = joblib.load(
