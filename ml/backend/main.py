@@ -98,7 +98,17 @@ app.include_router(auth_router)
 # LOAD MODELS
 # =========================================================
 
-item_knn = joblib.load(MODEL_DIR / "item_knn.pkl")
+item_knn_path = MODEL_DIR / "item_knn.pkl"
+if item_knn_path.exists():
+    try:
+        item_knn = joblib.load(item_knn_path)
+    except Exception as e:
+        print(f"Warning: Unable to load optional item_knn.pkl artifact ({e}). Continuing with hybrid SVD engine.")
+        item_knn = None
+else:
+    print("Notice: item_knn.pkl not present in deployment directory. Utilizing SVD & Hybrid recommendation engines.")
+    item_knn = None
+
 svd_model = joblib.load(MODEL_DIR / "svd_model.pkl")
 user_latent_matrix = joblib.load(MODEL_DIR / "user_latent_matrix.pkl")
 movie_latent_matrix = joblib.load(MODEL_DIR / "movie_latent_matrix.pkl")
