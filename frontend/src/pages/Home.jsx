@@ -448,11 +448,12 @@ export default function Home({
   ];
 
   const categories = rawCategories.map(cat => {
+    const rowSeen = new Set();
     const movies = (cat.source || []).filter(movie => {
       if (!hasValidPoster(movie)) return false;
       const key = getMovieIdentity(movie);
-      if (!key || seenMovieKeys.has(key)) return false;
-      seenMovieKeys.add(key);
+      if (!key || rowSeen.has(key)) return false;
+      rowSeen.add(key);
       return true;
     });
 
