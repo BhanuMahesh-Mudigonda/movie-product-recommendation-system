@@ -251,16 +251,21 @@ export const api = {
 
   async searchCatalogueMovies(
     query,
-    limit = 20
+    limit = 20,
+    cancelPrevious = false
   ) {
-    if (activeSearchController) {
-      activeSearchController.abort();
+    const options = {};
+    if (cancelPrevious) {
+      if (activeSearchController) {
+        activeSearchController.abort();
+      }
+      activeSearchController = new AbortController();
+      options.signal = activeSearchController.signal;
     }
-    activeSearchController = new AbortController();
 
     return await safeFetch(
       buildApiUrl(`/api/catalogue/search?q=${encodeURIComponent(query)}&limit=${limit}`),
-      { signal: activeSearchController.signal }
+      options
     );
   },
 
