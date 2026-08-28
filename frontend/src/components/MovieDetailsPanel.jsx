@@ -324,7 +324,7 @@ export default function MovieDetailsPanel({
                     </div>
                   ) : (
                     <div className="no-streaming-box">
-                      <p className="no-streaming-text">Streaming availability information is currently unavailable.</p>
+                      <p className="no-streaming-text">No verified watch destination is currently mapped for this title.</p>
                     </div>
                   )}
                 </div>
