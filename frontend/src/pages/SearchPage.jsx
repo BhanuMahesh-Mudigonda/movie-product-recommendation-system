@@ -274,7 +274,30 @@ export default function SearchPage({
         candidateList = await localSimilarityService.getLocalDatasetPool();
       }
 
-      console.log("Catalogue Count:", candidateList.length);
+      // STEP 1: STRICT LANGUAGE CANDIDATE POOL ISOLATION FROM DATASET
+      if (langVal && langVal !== 'Any Language') {
+        const cleanLang = langVal.toLowerCase();
+        const langCodeMap = {
+          'telugu': ['te', 'telugu'],
+          'hindi': ['hi', 'hindi'],
+          'english': ['en', 'english'],
+          'tamil': ['ta', 'tamil'],
+          'malayalam': ['ml', 'malayalam'],
+          'kannada': ['kn', 'kannada']
+        };
+        const matches = langCodeMap[cleanLang] || [cleanLang];
+        const langFiltered = candidateList.filter(m => {
+          const mLang = (m.language || m.original_language || '').toLowerCase();
+          const mTitle = (m.title || m.original_title || '').toLowerCase();
+          return matches.some(term => mLang.includes(term) || mTitle.includes(term));
+        });
+
+        if (langFiltered.length > 0) {
+          candidateList = langFiltered;
+        }
+      }
+
+      console.log("Language Candidate Count:", candidateList.length);
 
       // 2. Dynamic Weighted Scoring based on CURRENT user preferences & dataset richness
       const scoredCandidates = (candidateList || []).map(movie => {
