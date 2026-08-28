@@ -215,35 +215,44 @@ export default function SearchPage({
     return [lower];
   }, []);
 
-  // Pure Intention Ranking Function based on User Preference Object
-  const rankCandidatesByPreferences = useCallback((candidateList = [], preferences = {}) => {
-    const { moodObj, genresArr, timeVal, langVal, eraVal, platformsArr } = preferences;
-    let pool = [...candidateList];
+  // Central Recommendation Engine: getPersonalizedRecommendations
+  const getPersonalizedRecommendations = useCallback((preferences = {}, movieCatalogue = []) => {
+    const { moodObj, genresArr = [], timeVal, langVal, eraVal, platformsArr = [] } = preferences;
+    
+    // STEP A: Validate & deduplicate movie catalogue
+    const validCatalogue = [];
+    const seenMap = new Map();
+    (movieCatalogue || []).forEach(m => {
+      if (m) {
+        const norm = normalizeMovie(m);
+        if (norm && norm.title && String(norm.title).trim() !== '') {
+          const id = String(norm.movieId || norm.id || norm.title).toLowerCase().trim();
+          if (!seenMap.has(id)) {
+            seenMap.set(id, norm);
+            validCatalogue.push(norm);
+          }
+        }
+      }
+    });
 
+    // STEP B: STRICT LANGUAGE FILTER FIRST
     const langTerms = normalizeLanguageQuery(langVal);
+    let candidatePool = [...validCatalogue];
 
-    console.log("Preferences:", { mood: moodObj?.id, genres: genresArr, language: langVal, langTerms });
-    console.log("Dataset total count:", candidateList.length);
-
-    // 1. HARD LANGUAGE CANDIDATE FILTERING FROM DATASET
     if (langTerms && langTerms.length > 0) {
-      const langFiltered = pool.filter(m => {
+      const langFiltered = candidatePool.filter(m => {
         const mLang = (m.language || m.original_language || '').toLowerCase().trim();
         const mTitle = (m.title || m.original_title || '').toLowerCase().trim();
         return langTerms.some(term => mLang === term || mLang.includes(term) || mTitle.includes(`(${term})`) || mTitle.includes(term));
       });
 
-      console.log("Language candidate count:", langFiltered.length);
-
       if (langFiltered.length > 0) {
-        pool = langFiltered;
+        candidatePool = langFiltered;
       }
-    } else {
-      console.log("Language candidate count (Any Language):", pool.length);
     }
 
-    // 2. DYNAMIC INTENTION SCORING
-    const scored = pool.map(movie => {
+    // STEP C: DYNAMIC INTENTION SCORING (Mood + Experience + Runtime + Era + Quality)
+    const scoredCandidates = candidatePool.map(movie => {
       let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 1.5;
       const movieGenres = (movie.genres || movie.genre || '').toLowerCase();
       const movieLang = (movie.language || movie.original_language || '').toLowerCase();
@@ -252,59 +261,60 @@ export default function SearchPage({
       const movieYear = parseInt(movie.year || movie.release_year || '2020', 10);
       const movieRuntime = parseInt(movie.runtime || '120', 10);
 
-      // Level 1: Language Match
+      // 1. Language Score (+40 pts)
       if (langTerms && langTerms.length > 0) {
         const isLangMatch = langTerms.some(term => movieLang === term || movieLang.includes(term) || movieTitle.includes(term));
-        if (isLangMatch) score += 500;
-        else score -= 300;
+        if (isLangMatch) score += 40;
+        else score -= 30;
       }
 
-      // Level 2: Genre Match
-      if (genresArr && genresArr.length > 0) {
+      // 2. Genre / Experience Match (+25 pts per matching genre)
+      if (genresArr.length > 0) {
         let matchCount = 0;
         genresArr.forEach(g => {
           if (movieGenres.includes(g.toLowerCase())) {
             matchCount++;
-            score += 300;
+            score += 25;
           }
         });
-        if (matchCount === 0) score -= 150;
+        if (matchCount === 0) score -= 10;
       }
 
-      // Level 3: Mood Semantic Match
+      // 3. Mood Semantic Match (+40 pts)
       if (moodObj && moodObj.query) {
         const keywords = moodObj.query.toLowerCase().split(' ');
         const hasMoodMatch = keywords.some(kw =>
           movieGenres.includes(kw) || movieOverview.includes(kw) || movieTitle.includes(kw)
         );
-        if (hasMoodMatch) score += 200;
+        if (hasMoodMatch) score += 40;
       }
 
-      // Platform Bonus (Non-restrictive)
+      // 4. Description & Overview Keyword Relevance (+15 pts)
+      if (movieOverview && movieOverview.length > 30) score += 15;
+
+      // 5. Runtime Relevance (+8 pts)
+      if (timeVal === 'Quick Watch' && movieRuntime < 115) score += 8;
+      else if (timeVal === 'Standard' && movieRuntime >= 105 && movieRuntime <= 145) score += 8;
+      else if (timeVal === 'Long Movie' && movieRuntime >= 140) score += 8;
+
+      // 6. Discovery Style / Era Relevance (+5 pts)
+      if (eraVal === 'Latest Available' && movieYear >= 2020) score += 5;
+      else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 5;
+      else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 5;
+      else if (eraVal === 'Hidden Gems' && (parseFloat(movie.rating) || 0) >= 7.8) score += 5;
+      else if (eraVal === 'Surprise Me') score += Math.random() * 8;
+
+      // 7. Streaming Platform Soft Preference (+5 pts)
       if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
         const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
-        if (isAvail) score += 50;
+        if (isAvail) score += 5;
       }
 
-      // Runtime Match
-      if (timeVal === 'Quick Watch' && movieRuntime < 115) score += 50;
-      else if (timeVal === 'Standard' && movieRuntime >= 105 && movieRuntime <= 145) score += 50;
-      else if (timeVal === 'Long Movie' && movieRuntime >= 140) score += 50;
+      // 8. Metadata Quality Bonus (+2 pts max)
+      if (movie.poster || movie.Poster || movie.posterUrl) score += 1;
+      if (movie.cast || movie.Actors) score += 1;
 
-      // Era Match
-      if (eraVal === 'Latest Available' && movieYear >= 2020) score += 50;
-      else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 50;
-      else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 50;
-      else if (eraVal === 'Hidden Gems' && (parseFloat(movie.rating) || 0) >= 7.8) score += 50;
-      else if (eraVal === 'Surprise Me') score += Math.random() * 40;
-
-      // Metadata Quality Bonus
-      if (movie.poster || movie.Poster || movie.posterUrl) score += 15;
-      if (movie.overview || movie.Plot || movie.description) score += 15;
-      if (movie.cast || movie.Actors) score += 10;
-      if (movie.rating || movie.imdbRating) score += 10;
-
-      const charHash = (movieTitle.charCodeAt(0) || 65) % 15;
+      const charHash = (movieTitle.charCodeAt(0) || 65) % 10;
       score += charHash;
 
       return {
@@ -314,25 +324,31 @@ export default function SearchPage({
       };
     });
 
-    scored.sort((a, b) => b.discoveryScore - a.discoveryScore);
+    // STEP D: Sort Descending
+    scoredCandidates.sort((a, b) => b.discoveryScore - a.discoveryScore);
 
+    // STEP E: Deduplicate Unique Ranked Results
+    const uniqueRanked = [];
     const seenIds = new Set();
-    const finalMovies = [];
-    for (const item of scored) {
+    for (const item of scoredCandidates) {
       const id = String(item.movieId || item.id || item.title).toLowerCase().trim();
       if (!seenIds.has(id)) {
         seenIds.add(id);
-        finalMovies.push(item);
+        uniqueRanked.push(item);
       }
-      if (finalMovies.length >= 18) break;
+      if (uniqueRanked.length >= 18) break;
     }
 
-    console.log("Ranked results count:", finalMovies.length);
-    if (finalMovies.length > 0) {
-      console.log("Best match selected:", finalMovies[0].title || finalMovies[0].Title);
-    }
+    const bestMatch = uniqueRanked.length > 0 ? uniqueRanked[0] : null;
+    const moreMatches = uniqueRanked.length > 1 ? uniqueRanked.slice(1) : [];
 
-    return finalMovies;
+    console.log("Preference Model:", { mood: moodObj?.id, genres: genresArr, language: langVal });
+    console.log("Total Catalogue Count:", validCatalogue.length);
+    console.log("Language Candidate Count:", candidatePool.length);
+    console.log("Ranked Results Count:", uniqueRanked.length);
+    console.log("Selected Best Match:", bestMatch?.title || bestMatch?.Title || "None");
+
+    return { bestMatch, moreMatches, allRanked: uniqueRanked };
   }, [normalizeLanguageQuery]);
 
   // Main Discovery Search Execution with Preference Object & Dynamic Intention
@@ -350,6 +366,7 @@ export default function SearchPage({
     const platformsArr = overrides.platforms || selectedPlatforms;
 
     const cleanLangQuery = (langVal || '').replace(/Cinema|\/ Hollywood/gi, '').trim();
+    const preferences = { moodObj, genresArr, timeVal, langVal, eraVal, platformsArr };
 
     try {
       // 1. Fetch Candidate Dataset Pool dynamically based on user's current selections
@@ -423,50 +440,21 @@ export default function SearchPage({
         candidateList = await localSimilarityService.getLocalDatasetPool();
       }
 
-      // STEP 1: STRICT LANGUAGE CANDIDATE POOL ISOLATION FROM DATASET
-      if (langVal && langVal !== 'Any Language') {
-        const cleanLang = langVal.toLowerCase();
-        const langCodeMap = {
-          'telugu': ['te', 'telugu'],
-          'hindi': ['hi', 'hindi'],
-          'english': ['en', 'english'],
-          'tamil': ['ta', 'tamil'],
-          'malayalam': ['ml', 'malayalam'],
-          'kannada': ['kn', 'kannada']
-        };
-        const matches = langCodeMap[cleanLang] || [cleanLang];
-        const langFiltered = candidateList.filter(m => {
-          const mLang = (m.language || m.original_language || '').toLowerCase();
-          const mTitle = (m.title || m.original_title || '').toLowerCase();
-          return matches.some(term => mLang.includes(term) || mTitle.includes(term));
-        });
+      // 2. Run Central Recommendation Engine
+      const { allRanked } = getPersonalizedRecommendations(preferences, candidateList);
 
-        if (langFiltered.length > 0) {
-          candidateList = langFiltered;
-        }
-      }
-
-      console.log("Language Candidate Count:", candidateList.length);
-
-      // 2. Dynamic Intention Ranking based on user preference object
-      const preferences = { moodObj, genresArr, timeVal, langVal, eraVal, platformsArr };
-      const finalMovies = rankCandidatesByPreferences(candidateList, preferences);
-
-      console.log("Final Dynamic Recommendations Count:", finalMovies.length);
-
-      if (searchId === activeSearchId.current && finalMovies.length > 0) {
-        setMovies(finalMovies);
+      if (searchId === activeSearchId.current && allRanked.length > 0) {
+        setMovies(allRanked);
       }
 
     } catch (err) {
       console.error("Discovery error:", err);
       if (searchId === activeSearchId.current) {
         try {
-          const preferences = { moodObj, genresArr, timeVal, langVal, eraVal, platformsArr };
           const fallbackPool = await localSimilarityService.getLocalDatasetPool();
-          const rankedFallback = rankCandidatesByPreferences(fallbackPool, preferences);
-          if (rankedFallback.length > 0) {
-            setMovies(rankedFallback);
+          const { allRanked } = getPersonalizedRecommendations(preferences, fallbackPool);
+          if (allRanked.length > 0) {
+            setMovies(allRanked);
           } else {
             setSearchError(true);
           }
@@ -482,7 +470,7 @@ export default function SearchPage({
         }, 100);
       }
     }
-  }, [selectedMood, selectedGenres, selectedTime, selectedLanguage, selectedEra, selectedPlatforms]);
+  }, [selectedMood, selectedGenres, selectedTime, selectedLanguage, selectedEra, selectedPlatforms, getPersonalizedRecommendations]);
 
   const handleGlobalSubmit = (e) => {
     e.preventDefault();
