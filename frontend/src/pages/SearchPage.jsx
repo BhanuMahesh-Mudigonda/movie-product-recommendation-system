@@ -200,7 +200,7 @@ export default function SearchPage({
     console.log("Explore Preferences:", { mood: moodObj.id, genres: genresArr, time: timeVal, language: langVal, era: eraVal, platforms: platformsArr });
 
     try {
-      // 1. Fetch Candidate Dataset Pool from master datasets synchronously / with fast fallbacks
+      // 1. Fetch Candidate Dataset Pool dynamically based on user's current selections
       let pool = [];
 
       try {
@@ -211,8 +211,21 @@ export default function SearchPage({
           localSimilarityService.getLocalDatasetPool().catch(() => [])
         ];
 
+        // Dedicated search queries based on active user selections
         if (langVal && langVal !== 'Any Language') {
-          poolPromises.push(api.searchCatalogueMovies(langVal, 35).catch(() => []));
+          poolPromises.push(api.searchCatalogueMovies(langVal, 50).catch(() => []));
+        }
+
+        if (genresArr.length > 0) {
+          poolPromises.push(api.searchCatalogueMovies(genresArr.join(' '), 50).catch(() => []));
+        }
+
+        if (langVal && langVal !== 'Any Language' && genresArr.length > 0) {
+          poolPromises.push(api.searchCatalogueMovies(`${langVal} ${genresArr.join(' ')}`, 50).catch(() => []));
+        }
+
+        if (moodObj && moodObj.query) {
+          poolPromises.push(api.searchCatalogueMovies(moodObj.query, 40).catch(() => []));
         }
 
         const results = await Promise.allSettled(poolPromises);
@@ -260,9 +273,9 @@ export default function SearchPage({
 
       console.log("Catalogue Count:", candidateList.length);
 
-      // 2. Score candidate movies based on weighted preferences
+      // 2. Dynamic Weighted Scoring based on CURRENT preferences
       const scoredCandidates = (candidateList || []).map(movie => {
-        let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 2;
+        let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 1.5; // base score ~ 10-15 pts
         const movieGenres = (movie.genres || movie.genre || '').toLowerCase();
         const movieLang = (movie.language || movie.original_language || '').toLowerCase();
         const movieTitle = (movie.title || movie.original_title || '').toLowerCase();
@@ -270,49 +283,56 @@ export default function SearchPage({
         const movieYear = parseInt(movie.year || movie.release_year || '2020', 10);
         const movieRuntime = parseInt(movie.runtime || '120', 10);
 
-        // A. Mood Match (+35 pts)
+        // A. Language Match (DOMINANT WEIGHT +150 pts)
+        if (langVal && langVal !== 'Any Language') {
+          const cleanLang = langVal.toLowerCase();
+          if (movieLang.includes(cleanLang) || movieTitle.includes(cleanLang)) {
+            score += 150;
+          } else {
+            score -= 40; // Soft penalize non-matching language when explicit language requested
+          }
+        }
+
+        // B. Genre Match (STRONG WEIGHT +100 pts per genre match)
+        if (genresArr.length > 0) {
+          let genreMatchCount = 0;
+          genresArr.forEach(g => {
+            if (movieGenres.includes(g.toLowerCase())) {
+              genreMatchCount++;
+              score += 100;
+            }
+          });
+          if (genreMatchCount === 0) {
+            score -= 20;
+          }
+        }
+
+        // C. Mood Match (HIGH WEIGHT +80 pts)
         if (moodObj && moodObj.query) {
           const moodKeywords = moodObj.query.toLowerCase().split(' ');
           const hasMoodMatch = moodKeywords.some(kw => 
             movieGenres.includes(kw) || movieOverview.includes(kw) || movieTitle.includes(kw)
           );
-          if (hasMoodMatch) score += 35;
+          if (hasMoodMatch) score += 80;
         }
 
-        // B. Genre Match (+25 per matching genre)
-        if (genresArr.length > 0) {
-          genresArr.forEach(g => {
-            if (movieGenres.includes(g.toLowerCase())) {
-              score += 25;
-            }
-          });
-        }
-
-        // C. Language Match (+35 pts for exact language)
-        if (langVal && langVal !== 'Any Language') {
-          const cleanLang = langVal.toLowerCase();
-          if (movieLang.includes(cleanLang) || movieTitle.includes(cleanLang)) {
-            score += 35;
-          }
-        }
-
-        // D. OTT / Platform Preference Bonus (+25 pts - NEVER eliminates)
+        // D. OTT / Platform Preference Bonus (+40 pts - NEVER eliminates)
         if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
           const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
-          if (isAvail) score += 25;
+          if (isAvail) score += 40;
         }
 
-        // E. Runtime Match (+15 pts)
-        if (timeVal === 'Quick Watch' && movieRuntime < 115) score += 15;
-        else if (timeVal === 'Standard' && movieRuntime >= 105 && movieRuntime <= 145) score += 15;
-        else if (timeVal === 'Long Movie' && movieRuntime >= 140) score += 15;
+        // E. Runtime Match (+25 pts)
+        if (timeVal === 'Quick Watch' && movieRuntime < 115) score += 25;
+        else if (timeVal === 'Standard' && movieRuntime >= 105 && movieRuntime <= 145) score += 25;
+        else if (timeVal === 'Long Movie' && movieRuntime >= 140) score += 25;
 
-        // F. Era Match (+15 pts)
-        if (eraVal === 'Latest Available' && movieYear >= 2020) score += 15;
-        else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 15;
-        else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 15;
-        else if (eraVal === 'Hidden Gems' && (parseFloat(movie.rating) || 0) >= 7.8) score += 15;
-        else if (eraVal === 'Surprise Me') score += Math.random() * 12;
+        // F. Era Match (+25 pts)
+        if (eraVal === 'Latest Available' && movieYear >= 2020) score += 25;
+        else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 25;
+        else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 25;
+        else if (eraVal === 'Hidden Gems' && (parseFloat(movie.rating) || 0) >= 7.8) score += 25;
+        else if (eraVal === 'Surprise Me') score += Math.random() * 20;
 
         return {
           ...movie,
@@ -321,7 +341,7 @@ export default function SearchPage({
         };
       });
 
-      // 3. Sort descending by score
+      // 3. Sort descending by dynamic weighted score
       scoredCandidates.sort((a, b) => b.discoveryScore - a.discoveryScore);
 
       // 4. Take top unique movies
@@ -366,14 +386,6 @@ export default function SearchPage({
     }
   }, [selectedMood, selectedGenres, selectedTime, selectedLanguage, selectedEra, selectedPlatforms]);
 
-  // Initial load
-  useEffect(() => {
-    if (!hasSearched && movies.length === 0) {
-      setSelectedMood('adrenaline');
-      executeDiscovery({ mood: 'adrenaline' });
-    }
-  }, [hasSearched, movies.length, executeDiscovery]);
-
   const handleGlobalSubmit = (e) => {
     e.preventDefault();
     if (!globalQuery.trim()) return;
@@ -401,9 +413,13 @@ export default function SearchPage({
 
   const handleMoodSelect = (moodId) => {
     setSelectedMood(moodId);
+    setHasSearched(false);
+    setMovies([]);
   };
 
   const toggleGenre = (genre) => {
+    setHasSearched(false);
+    setMovies([]);
     setSelectedGenres(prev => {
       if (prev.includes(genre)) {
         return prev.filter(g => g !== genre);
@@ -413,7 +429,27 @@ export default function SearchPage({
     });
   };
 
+  const handleTimeSelect = (timeId) => {
+    setSelectedTime(timeId);
+    setHasSearched(false);
+    setMovies([]);
+  };
+
+  const handleLanguageSelect = (langId) => {
+    setSelectedLanguage(langId);
+    setHasSearched(false);
+    setMovies([]);
+  };
+
+  const handleEraSelect = (eraId) => {
+    setSelectedEra(eraId);
+    setHasSearched(false);
+    setMovies([]);
+  };
+
   const togglePlatform = (platId) => {
+    setHasSearched(false);
+    setMovies([]);
     if (platId === 'all') {
       setSelectedPlatforms(['all']);
       return;
@@ -450,7 +486,8 @@ export default function SearchPage({
     setSelectedLanguage('Any Language');
     setSelectedEra('Latest Available');
     setSelectedPlatforms(['all']);
-    executeDiscovery({ mood: 'adrenaline', genres: [], time: 'Standard', language: 'Any Language', era: 'Latest Available' });
+    setHasSearched(false);
+    setMovies([]);
   };
 
   const displayMovies = movies;
@@ -624,7 +661,7 @@ export default function SearchPage({
                   <button
                     key={t.id}
                     className={`time-card-btn ${isActive ? 'active' : ''}`}
-                    onClick={() => setSelectedTime(t.id)}
+                    onClick={() => handleTimeSelect(t.id)}
                   >
                     <div className="time-card-icon">
                       <Clock size={24} className={isActive ? 'text-cyan' : ''} />
@@ -649,7 +686,7 @@ export default function SearchPage({
                   <button
                     key={lang.id}
                     className={`lang-card-btn ${isActive ? 'active' : ''}`}
-                    onClick={() => setSelectedLanguage(lang.id)}
+                    onClick={() => handleLanguageSelect(lang.id)}
                   >
                     <div className="lang-code-badge">
                       {lang.id.substring(0, 2).toUpperCase()}
@@ -674,7 +711,7 @@ export default function SearchPage({
                   <button
                     key={era.id}
                     className={`era-card-btn ${isActive ? 'active' : ''}`}
-                    onClick={() => setSelectedEra(era.id)}
+                    onClick={() => handleEraSelect(era.id)}
                   >
                     <div className="era-icon-badge" style={{ color: era.color, backgroundColor: 'rgba(0,0,0,0.3)' }}>
                       <Icon size={24} />
