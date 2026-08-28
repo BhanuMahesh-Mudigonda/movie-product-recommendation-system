@@ -280,9 +280,17 @@ export default function SearchPage({
     </div>
   );
 
-  const displayMovies = selectedPlatform === 'all'
+  const selectedPlatformObj = STREAMING_PLATFORMS.find(p => p.id === selectedPlatform);
+
+  const exactPlatformMatches = selectedPlatform === 'all'
     ? movies
     : movies.filter(m => streamingAvailabilityService.isAvailableOnPlatform(m, selectedPlatform));
+
+  const isUsingFallbackAlternatives = selectedPlatform !== 'all' && exactPlatformMatches.length === 0;
+
+  const displayMovies = (selectedPlatform !== 'all' && exactPlatformMatches.length > 0)
+    ? exactPlatformMatches
+    : movies;
 
   const bestMatch = displayMovies[0];
   const moreMatches = displayMovies.slice(1, 6);
@@ -564,14 +572,25 @@ export default function SearchPage({
         <section className="results-section fade-in" ref={resultsRef}>
           <div className="scroll-anchor"></div>
           
-          <div className="results-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div className="results-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', color: '#cbd5e1', letterSpacing: '1px' }}>
-              RECOMMENDED FOR YOUR MOOD & PREFERENCES
+              {isUsingFallbackAlternatives
+                ? `RECOMMENDED MOVIE ALTERNATIVES FOR YOUR MOOD`
+                : selectedPlatform !== 'all'
+                  ? `RECOMMENDED ON ${selectedPlatformObj?.name?.toUpperCase() || 'PLATFORM'}`
+                  : `RECOMMENDED FOR YOUR MOOD & PREFERENCES`}
             </h3>
             <span className="src-ai-badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--accent-cyan)', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
               <Sparkles size={14} style={{ display: 'inline', marginRight: '6px' }} /> Smart Match Engine
             </span>
           </div>
+
+          {isUsingFallbackAlternatives && (
+            <div className="platform-fallback-banner" style={{ background: 'rgba(255, 102, 0, 0.12)', border: '1px solid rgba(255, 102, 0, 0.3)', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', color: '#ffaa66', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Sparkles size={16} />
+              <span>Direct streaming on <strong>{selectedPlatformObj?.name}</strong> is currently unavailable for this specific search, but here are top recommended movie alternatives for your mood & taste!</span>
+            </div>
+          )}
 
           {bestMatch && (
             <div className="best-match-card" onClick={() => onMovieSelect(bestMatch)}>
