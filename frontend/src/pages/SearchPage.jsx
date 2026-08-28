@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { STREAMING_PLATFORMS, streamingAvailabilityService } from '../services/streamingAvailabilityService';
 import {
   Search, Film, Heart, Zap, Smile, Moon, HeartHandshake, Crown, 
-  CloudRain, Flame, Play, Star, Calendar, Globe, Clock, ChevronRight, Check, Dices, Ghost, RefreshCw, Home, Sparkles, Tv
+  CloudRain, Flame, Play, Star, Calendar, Globe, Clock, ChevronRight, Check, Dices, Ghost, RefreshCw, Home, Sparkles, Tv, SlidersHorizontal, ChevronDown
 } from 'lucide-react';
 
 import { movieSearchService } from '../services/MovieSearchService';
@@ -68,6 +68,7 @@ export default function SearchPage({
   const [selectedLanguage, setSelectedLanguage] = useState('Any Language');
   const [selectedEra, setSelectedEra] = useState('Latest Available');
   const [selectedPlatform, setSelectedPlatform] = useState('all');
+  const [isFilterDrawerOpen, setIsFilterDrawerOpen] = useState(false);
 
   // Live Search Dropdown States
   const [showLiveDropdown, setShowLiveDropdown] = useState(false);
@@ -354,203 +355,122 @@ export default function SearchPage({
         </div>
       </div>
 
-      {/* STEP 1: MOOD */}
-      <section className="discovery-step-section">
-        <div className="step-header">
-          <div className="step-number">1</div>
-          <div className="step-text">
-            <h2>HOW ARE YOU FEELING?</h2>
-            <p>Choose the mood that matches how you feel right now.</p>
-          </div>
-        </div>
-
-        <div className="mood-grid new-mood-grid">
-          {moods.map((mood) => {
-            const Icon = mood.icon;
-            const isActive = selectedMood === mood.id;
-            return (
-              <button
-                key={mood.id}
-                className={`new-mood-card ${mood.id} ${isActive ? 'active' : ''}`}
-                onClick={() => handleMoodSelect(mood.id)}
-              >
-                {isActive && <div className="mood-check"><Check size={14} /></div>}
-                <div className={`mood-icon`}>
-                  <Icon size={32} />
-                </div>
-                <h3>{mood.title}</h3>
-                <span>{mood.subtitle}</span>
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* STEP 2: MOVIE TASTE / GENRE SELECTION */}
-      <section className="discovery-step-section">
-        <div className="step-header">
-          <div className="step-number">2</div>
-          <div className="step-text">
-            <h2>WHAT ARE YOU IN THE MOOD TO WATCH?</h2>
-            <p>Choose one or more styles you enjoy (Select up to 3).</p>
-          </div>
-        </div>
-
-        <div className="try-these" style={{ gap: '12px', marginTop: '10px' }}>
-          {GENRE_OPTIONS.map(genre => {
-            const isActive = selectedGenres.includes(genre);
-            return (
-              <button
-                key={genre}
-                className={`chip-btn ${isActive ? 'active' : ''}`}
-                style={{
-                  padding: '10px 20px',
-                  borderRadius: '25px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  background: isActive ? 'rgba(6,182,212,0.2)' : 'var(--bg-surface)',
-                  borderColor: isActive ? 'var(--accent-cyan)' : 'var(--border-glass)',
-                  color: isActive ? 'white' : '#cbd5e1',
-                  boxShadow: isActive ? '0 4px 15px rgba(6,182,212,0.2)' : 'none'
-                }}
-                onClick={() => toggleGenre(genre)}
-              >
-                {genre} {isActive && <Check size={14} style={{ display: 'inline', marginLeft: '6px' }} />}
-              </button>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* STEP 3: REFINE */}
-      <section className="discovery-step-section refine-section">
-        <div className="step-header">
-          <div className="step-number">3</div>
-          <div className="step-text">
-            <h2>LET'S REFINE YOUR PREFERENCES</h2>
-            <p>Help us personalize your recommendations.</p>
-          </div>
-        </div>
-
-        <div className="refine-grid">
-          {/* RUSH */}
-          <div className="refine-col">
-            <h4>WHAT KIND OF RUSH? <span className="sub">(Select up to 2)</span></h4>
-            <div className="refine-options">
-              {RUSH_OPTIONS.map(opt => (
-                <button 
-                  key={opt} 
-                  className={`refine-btn ${selectedRush.includes(opt) ? 'active' : ''}`}
-                  onClick={() => toggleRush(opt)}
-                >
-                  <div className="btn-content">
-                    {opt === 'Action' && <Zap size={16} />}
-                    {opt === 'Thriller' && <Ghost size={16} />}
-                    {opt === 'Crime' && <Search size={16} />}
-                    {opt === 'Adventure' && <Flame size={16} />}
-                    {opt === 'Spy' && <Globe size={16} />}
-                    {opt}
-                  </div>
-                  {selectedRush.includes(opt) && <div className="check-circle"><Check size={12} /></div>}
-                </button>
-              ))}
-            </div>
-          </div>
-          
-          {/* TIME */}
-          <div className="refine-col">
-            <h4>HOW MUCH TIME?</h4>
-            <div className="refine-options">
-              {TIME_OPTIONS.map(opt => (
-                <button 
-                  key={opt.id} 
-                  className={`refine-btn flex-col ${selectedTime === opt.id ? 'active' : ''}`}
-                  onClick={() => setSelectedTime(opt.id)}
-                >
-                  <div className="btn-content">
-                    <Clock size={16} /> <span className="btn-title">{opt.id}</span>
-                  </div>
-                  <div className="btn-desc">{opt.desc}</div>
-                  {selectedTime === opt.id && <div className="check-circle"><Check size={12} /></div>}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* LANGUAGE */}
-          <div className="refine-col">
-            <h4>LANGUAGE</h4>
-            <div className="refine-options">
-              {LANGUAGE_OPTIONS.map(opt => (
-                <button 
-                  key={opt} 
-                  className={`refine-btn ${selectedLanguage === opt ? 'active' : ''}`}
-                  onClick={() => setSelectedLanguage(opt)}
-                >
-                  <div className="btn-content">
-                    <span className="lang-icon">{opt.substring(0, 2).toUpperCase()}</span> {opt}
-                  </div>
-                  {selectedLanguage === opt && <div className="check-circle"><Check size={12} /></div>}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* ERA */}
-          <div className="refine-col">
-            <h4>WHEN DO YOU WANT TO WATCH?</h4>
-            <div className="refine-options">
-              {ERA_OPTIONS.map(opt => {
-                const Icon = opt.icon;
-                return (
-                  <button 
-                    key={opt.id} 
-                    className={`refine-btn flex-col ${selectedEra === opt.id ? 'active' : ''}`}
-                    onClick={() => setSelectedEra(opt.id)}
-                  >
-                    <div className="btn-content">
-                      <Icon size={16} className={opt.color} />
-                      <span className="btn-title">{opt.id}</span>
-                    </div>
-                    <div className="btn-desc">{opt.desc}</div>
-                    {selectedEra === opt.id && <div className="check-circle"><Check size={12} /></div>}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* STREAMING PLATFORMS */}
-          <div className="refine-col platform-refine-col">
-            <h4>WHERE TO WATCH PLATFORM</h4>
-            <div className="refine-options platform-pills-options">
-              {STREAMING_PLATFORMS.map(plat => (
+      {/* COMPACT TOOLBAR & QUICK FILTERS */}
+      <div className="compact-explore-toolbar">
+        <div className="quick-filters-row">
+          <span className="quick-label">Quick Filters:</span>
+          <div className="quick-pills">
+            {['Action', 'Drama', 'Thriller', 'Comedy', 'Telugu', 'Sci-Fi'].map(g => {
+              const isActive = g === 'Telugu' ? selectedLanguage === 'Telugu' : selectedGenres.includes(g);
+              return (
                 <button
-                  key={plat.id}
-                  className={`refine-btn platform-pill-btn ${selectedPlatform === plat.id ? 'active' : ''}`}
-                  onClick={() => setSelectedPlatform(plat.id)}
-                  style={{
-                    borderColor: selectedPlatform === plat.id ? plat.color : 'rgba(255, 255, 255, 0.1)',
-                    color: selectedPlatform === plat.id ? plat.color : '#cbd5e1'
+                  key={g}
+                  className={`quick-pill-btn ${isActive ? 'active' : ''}`}
+                  onClick={() => {
+                    if (g === 'Telugu') {
+                      setSelectedLanguage(selectedLanguage === 'Telugu' ? 'Any Language' : 'Telugu');
+                    } else {
+                      toggleGenre(g);
+                    }
                   }}
                 >
-                  <div className="btn-content">
-                    <Tv size={14} style={{ color: plat.color }} />
-                    <span>{plat.name}</span>
-                  </div>
-                  {selectedPlatform === plat.id && <div className="check-circle"><Check size={12} /></div>}
+                  {g} {isActive && <Check size={12} style={{ display: 'inline', marginLeft: '4px' }} />}
                 </button>
-              ))}
-            </div>
+              );
+            })}
+          </div>
+
+          <div className="action-buttons-group">
+            <button 
+              className={`more-filters-toggle-btn ${isFilterDrawerOpen ? 'active' : ''}`}
+              onClick={() => setIsFilterDrawerOpen(!isFilterDrawerOpen)}
+            >
+              <SlidersHorizontal size={15} />
+              <span>More Filters</span>
+              <ChevronDown size={14} className={`chevron-icon ${isFilterDrawerOpen ? 'open' : ''}`} />
+            </button>
+
+            <button className="find-perfect-btn compact-find-btn" onClick={handleDiscover}>
+              <span>Find My Perfect Movie</span> <Sparkles size={16} />
+            </button>
           </div>
         </div>
 
-        <div className="find-action-wrapper">
-          <button className="find-perfect-btn" onClick={handleDiscover}>
-            Find My Perfect Movie <Sparkles size={20} />
-          </button>
-        </div>
-      </section>
+        {/* EXPANDABLE COMPACT FILTER DRAWER */}
+        {isFilterDrawerOpen && (
+          <div className="expandable-filter-drawer fade-in">
+            <div className="drawer-grid">
+              {/* PLATFORMS */}
+              <div className="drawer-col platform-drawer-col">
+                <h4><Tv size={14} /> WHERE TO WATCH PLATFORM</h4>
+                <div className="drawer-pills-wrap">
+                  {STREAMING_PLATFORMS.map(plat => (
+                    <button
+                      key={plat.id}
+                      className={`drawer-pill ${selectedPlatform === plat.id ? 'active' : ''}`}
+                      style={{
+                        borderColor: selectedPlatform === plat.id ? plat.color : 'rgba(255,255,255,0.1)',
+                        color: selectedPlatform === plat.id ? plat.color : '#cbd5e1'
+                      }}
+                      onClick={() => setSelectedPlatform(plat.id)}
+                    >
+                      {plat.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* MOODS */}
+              <div className="drawer-col">
+                <h4><Smile size={14} /> MOOD</h4>
+                <div className="drawer-pills-wrap">
+                  {moods.map(m => (
+                    <button
+                      key={m.id}
+                      className={`drawer-pill ${selectedMood === m.id ? 'active' : ''}`}
+                      onClick={() => handleMoodSelect(m.id)}
+                    >
+                      {m.title}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* LANGUAGE */}
+              <div className="drawer-col">
+                <h4><Globe size={14} /> LANGUAGE</h4>
+                <div className="drawer-pills-wrap">
+                  {LANGUAGE_OPTIONS.map(l => (
+                    <button
+                      key={l}
+                      className={`drawer-pill ${selectedLanguage === l ? 'active' : ''}`}
+                      onClick={() => setSelectedLanguage(l)}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* RUNTIME */}
+              <div className="drawer-col">
+                <h4><Clock size={14} /> RUNTIME</h4>
+                <div className="drawer-pills-wrap">
+                  {TIME_OPTIONS.map(t => (
+                    <button
+                      key={t.id}
+                      className={`drawer-pill ${selectedTime === t.id ? 'active' : ''}`}
+                      onClick={() => setSelectedTime(t.id)}
+                    >
+                      {t.id}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* STEP 3: RESULTS */}
       <div ref={resultsRef} className="scroll-anchor"></div>

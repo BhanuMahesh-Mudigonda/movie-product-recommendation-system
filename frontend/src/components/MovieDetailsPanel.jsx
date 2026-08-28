@@ -280,7 +280,7 @@ export default function MovieDetailsPanel({
                     <div className="atmosphere-fallback-box">
                       <Clapperboard size={20} className="atmo-icon" />
                       <p>
-                        This story unfolds within the <strong>{genres[0] || 'Cinematic'}</strong> genre universe, featuring rich narrative depth, atmospheric score, and memorable character arcs.
+                        Cast information currently unavailable for this title. This movie features rich narrative depth within the <strong>{genres[0] || 'Cinematic'}</strong> universe.
                       </p>
                     </div>
                   )}
@@ -300,16 +300,25 @@ export default function MovieDetailsPanel({
                           target="_blank"
                           rel="noopener noreferrer"
                           className="streaming-platform-card"
+                          onClick={(e) => e.stopPropagation()}
                           style={{
                             backgroundColor: plat.badgeBg,
                             borderColor: plat.badgeBorder
                           }}
                         >
+                          <div className="platform-logo-badge" style={{ color: plat.color, borderColor: plat.badgeBorder }}>
+                            {plat.logoText}
+                          </div>
+
                           <div className="platform-name-col">
                             <span className="platform-name" style={{ color: plat.color }}>{plat.name}</span>
                             <span className="platform-type">{plat.type}</span>
                           </div>
-                          <ExternalLink size={14} className="platform-link-icon" style={{ color: plat.color }} />
+
+                          <div className="platform-action-btn" style={{ color: plat.color }}>
+                            <span>{plat.actionLabel}</span>
+                            <ExternalLink size={13} className="platform-link-icon" />
+                          </div>
                         </a>
                       ))}
                     </div>

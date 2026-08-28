@@ -489,7 +489,7 @@
 /* STREAMING AVAILABILITY PLATFORMS */
 .streaming-platforms-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 12px;
   margin-top: 12px;
 }
@@ -497,8 +497,8 @@
 .streaming-platform-card {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 10px 14px;
+  gap: 12px;
+  padding: 12px 14px;
   border-radius: 12px;
   border: 1px solid rgba(255, 255, 255, 0.15);
   text-decoration: none;
@@ -508,12 +508,28 @@
 .streaming-platform-card:hover {
   transform: translateY(-2px);
   filter: brightness(1.25);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.platform-logo-badge {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 0.82rem;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
 }
 
 .platform-name-col {
   display: flex;
   flex-direction: column;
+  flex-grow: 1;
 }
 
 .platform-name {
@@ -529,8 +545,17 @@
   margin-top: 2px;
 }
 
-.platform-link-icon {
-  opacity: 0.85;
+.platform-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  white-space: nowrap;
+  background: rgba(0, 0, 0, 0.25);
+  padding: 5px 10px;
+  border-radius: 8px;
 }
 
 .no-streaming-box {
