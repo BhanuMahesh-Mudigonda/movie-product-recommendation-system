@@ -273,7 +273,7 @@ export default function SearchPage({
 
       console.log("Catalogue Count:", candidateList.length);
 
-      // 2. Dynamic Weighted Scoring based on CURRENT preferences
+      // 2. Dynamic Weighted Scoring based on CURRENT user preferences & dataset richness
       const scoredCandidates = (candidateList || []).map(movie => {
         let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 1.5; // base score ~ 10-15 pts
         const movieGenres = (movie.genres || movie.genre || '').toLowerCase();
@@ -283,43 +283,54 @@ export default function SearchPage({
         const movieYear = parseInt(movie.year || movie.release_year || '2020', 10);
         const movieRuntime = parseInt(movie.runtime || '120', 10);
 
-        // A. Language Match (DOMINANT WEIGHT +150 pts)
+        // A. Language Match (DOMINANT WEIGHT +400 pts)
         if (langVal && langVal !== 'Any Language') {
           const cleanLang = langVal.toLowerCase();
-          if (movieLang.includes(cleanLang) || movieTitle.includes(cleanLang)) {
-            score += 150;
+          const langCodeMap = {
+            'telugu': ['te', 'telugu'],
+            'hindi': ['hi', 'hindi'],
+            'english': ['en', 'english'],
+            'tamil': ['ta', 'tamil'],
+            'malayalam': ['ml', 'malayalam'],
+            'kannada': ['kn', 'kannada']
+          };
+          const matches = langCodeMap[cleanLang] || [cleanLang];
+          const isLangMatch = matches.some(term => movieLang.includes(term) || movieTitle.includes(term));
+
+          if (isLangMatch) {
+            score += 400;
           } else {
-            score -= 40; // Soft penalize non-matching language when explicit language requested
+            score -= 200; // Strong penalty for non-matching language when user explicitly selected a language
           }
         }
 
-        // B. Genre Match (STRONG WEIGHT +100 pts per genre match)
+        // B. Genre Match (STRONG WEIGHT +250 pts per matching genre)
         if (genresArr.length > 0) {
           let genreMatchCount = 0;
           genresArr.forEach(g => {
             if (movieGenres.includes(g.toLowerCase())) {
               genreMatchCount++;
-              score += 100;
+              score += 250;
             }
           });
           if (genreMatchCount === 0) {
-            score -= 20;
+            score -= 100; // Penalize non-matching genre when user selected explicit genres
           }
         }
 
-        // C. Mood Match (HIGH WEIGHT +80 pts)
+        // C. Mood Match (HIGH WEIGHT +150 pts)
         if (moodObj && moodObj.query) {
           const moodKeywords = moodObj.query.toLowerCase().split(' ');
           const hasMoodMatch = moodKeywords.some(kw => 
             movieGenres.includes(kw) || movieOverview.includes(kw) || movieTitle.includes(kw)
           );
-          if (hasMoodMatch) score += 80;
+          if (hasMoodMatch) score += 150;
         }
 
-        // D. OTT / Platform Preference Bonus (+40 pts - NEVER eliminates)
+        // D. OTT / Platform Preference Bonus (+50 pts)
         if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
           const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
-          if (isAvail) score += 40;
+          if (isAvail) score += 50;
         }
 
         // E. Runtime Match (+25 pts)
@@ -332,7 +343,17 @@ export default function SearchPage({
         else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 25;
         else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 25;
         else if (eraVal === 'Hidden Gems' && (parseFloat(movie.rating) || 0) >= 7.8) score += 25;
-        else if (eraVal === 'Surprise Me') score += Math.random() * 20;
+        else if (eraVal === 'Surprise Me') score += Math.random() * 30;
+
+        // G. Enriched Metadata Completeness Bonus (+50 pts max)
+        if (movie.poster || movie.Poster || movie.posterUrl) score += 15;
+        if (movie.overview || movie.Plot || movie.description) score += 15;
+        if (movie.cast || movie.Actors) score += 10;
+        if (movie.rating || movie.imdbRating) score += 10;
+
+        // H. Micro Diversity Hash Bonus (0-15 pts to rotate movies within score tier)
+        const charHash = (movieTitle.charCodeAt(0) || 65) % 15;
+        score += charHash;
 
         return {
           ...movie,

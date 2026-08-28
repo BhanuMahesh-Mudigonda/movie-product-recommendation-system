@@ -294,34 +294,40 @@ export default function MovieDetailsPanel({
                   </h3>
                   {streamingPlatforms.length > 0 ? (
                     <div className="streaming-platforms-grid">
-                      {streamingPlatforms.map((plat) => (
-                        <a
-                          key={plat.id}
-                          href={plat.watchUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="streaming-platform-card"
-                          onClick={(e) => e.stopPropagation()}
-                          style={{
-                            backgroundColor: plat.badgeBg,
-                            borderColor: plat.badgeBorder
-                          }}
-                        >
-                          <div className="platform-logo-badge" style={{ color: plat.color, borderColor: plat.badgeBorder }}>
-                            {plat.logoText}
-                          </div>
+                      {streamingPlatforms.map((plat) => {
+                        const hasLink = Boolean(plat.watchUrl);
+                        const CardComponent = hasLink ? 'a' : 'div';
+                        const extraProps = hasLink
+                          ? { href: plat.watchUrl, target: '_blank', rel: 'noopener noreferrer' }
+                          : {};
 
-                          <div className="platform-name-col">
-                            <span className="platform-name" style={{ color: plat.color }}>{plat.name}</span>
-                            <span className="platform-type">{plat.type}</span>
-                          </div>
+                        return (
+                          <CardComponent
+                            key={plat.id}
+                            {...extraProps}
+                            className={`streaming-platform-card ${hasLink ? 'has-link' : 'name-only'}`}
+                            onClick={(e) => e.stopPropagation()}
+                            style={{
+                              backgroundColor: plat.badgeBg,
+                              borderColor: plat.badgeBorder
+                            }}
+                          >
+                            <div className="platform-logo-badge" style={{ color: plat.color, borderColor: plat.badgeBorder }}>
+                              {plat.logoText}
+                            </div>
 
-                          <div className="platform-action-btn" style={{ color: plat.color }}>
-                            <span>{plat.actionLabel}</span>
-                            <ExternalLink size={13} className="platform-link-icon" />
-                          </div>
-                        </a>
-                      ))}
+                            <div className="platform-name-col">
+                              <span className="platform-name" style={{ color: plat.color }}>{plat.name}</span>
+                              <span className="platform-type">{plat.type}</span>
+                            </div>
+
+                            <div className="platform-action-btn" style={{ color: plat.color }}>
+                              <span>{hasLink ? plat.actionLabel : 'Available'}</span>
+                              {hasLink && <ExternalLink size={13} className="platform-link-icon" />}
+                            </div>
+                          </CardComponent>
+                        );
+                      })}
                     </div>
                   ) : (
                     <div className="no-streaming-box">
