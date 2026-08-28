@@ -186,32 +186,60 @@ export default function SearchPage({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
+  // Robust Language Normalization Layer
+  const normalizeLanguageQuery = useCallback((rawLang) => {
+    if (!rawLang || typeof rawLang !== 'string') return null;
+    const lower = rawLang.trim().toLowerCase();
+    
+    if (lower.includes('any') || lower === 'all') return null;
+    
+    if (lower.includes('telugu') || lower.includes('te')) {
+      return ['te', 'telugu', 'te-in', 'telugu cinema'];
+    }
+    if (lower.includes('hindi') || lower.includes('hi')) {
+      return ['hi', 'hindi', 'hi-in', 'bollywood', 'hindi cinema'];
+    }
+    if (lower.includes('english') || lower.includes('en') || lower.includes('hollywood')) {
+      return ['en', 'english', 'en-us', 'en-gb', 'hollywood', 'english / hollywood'];
+    }
+    if (lower.includes('tamil') || lower.includes('ta')) {
+      return ['ta', 'tamil', 'ta-in', 'kollywood', 'tamil cinema'];
+    }
+    if (lower.includes('malayalam') || lower.includes('ml')) {
+      return ['ml', 'malayalam', 'ml-in', 'mollywood', 'malayalam cinema'];
+    }
+    if (lower.includes('kannada') || lower.includes('kn')) {
+      return ['kn', 'kannada', 'kn-in', 'sandalwood', 'kannada cinema'];
+    }
+    
+    return [lower];
+  }, []);
+
   // Pure Intention Ranking Function based on User Preference Object
   const rankCandidatesByPreferences = useCallback((candidateList = [], preferences = {}) => {
     const { moodObj, genresArr, timeVal, langVal, eraVal, platformsArr } = preferences;
     let pool = [...candidateList];
 
+    const langTerms = normalizeLanguageQuery(langVal);
+
+    console.log("Preferences:", { mood: moodObj?.id, genres: genresArr, language: langVal, langTerms });
+    console.log("Dataset total count:", candidateList.length);
+
     // 1. HARD LANGUAGE CANDIDATE FILTERING FROM DATASET
-    if (langVal && langVal !== 'Any Language') {
-      const cleanLang = langVal.toLowerCase();
-      const langCodeMap = {
-        'telugu': ['te', 'telugu'],
-        'hindi': ['hi', 'hindi'],
-        'english': ['en', 'english'],
-        'tamil': ['ta', 'tamil'],
-        'malayalam': ['ml', 'malayalam'],
-        'kannada': ['kn', 'kannada']
-      };
-      const matches = langCodeMap[cleanLang] || [cleanLang];
+    if (langTerms && langTerms.length > 0) {
       const langFiltered = pool.filter(m => {
-        const mLang = (m.language || m.original_language || '').toLowerCase();
-        const mTitle = (m.title || m.original_title || '').toLowerCase();
-        return matches.some(term => mLang.includes(term) || mTitle.includes(term));
+        const mLang = (m.language || m.original_language || '').toLowerCase().trim();
+        const mTitle = (m.title || m.original_title || '').toLowerCase().trim();
+        return langTerms.some(term => mLang === term || mLang.includes(term) || mTitle.includes(`(${term})`) || mTitle.includes(term));
       });
+
+      console.log("Language candidate count:", langFiltered.length);
 
       if (langFiltered.length > 0) {
         pool = langFiltered;
       }
+    } else {
+      console.log("Language candidate count (Any Language):", pool.length);
     }
 
     // 2. DYNAMIC INTENTION SCORING
@@ -224,25 +252,14 @@ export default function SearchPage({
       const movieYear = parseInt(movie.year || movie.release_year || '2020', 10);
       const movieRuntime = parseInt(movie.runtime || '120', 10);
 
-      // Language Match
-      if (langVal && langVal !== 'Any Language') {
-        const cleanLang = langVal.toLowerCase();
-        const langCodeMap = {
-          'telugu': ['te', 'telugu'],
-          'hindi': ['hi', 'hindi'],
-          'english': ['en', 'english'],
-          'tamil': ['ta', 'tamil'],
-          'malayalam': ['ml', 'malayalam'],
-          'kannada': ['kn', 'kannada']
-        };
-        const matches = langCodeMap[cleanLang] || [cleanLang];
-        const isLangMatch = matches.some(term => movieLang.includes(term) || movieTitle.includes(term));
-
+      // Level 1: Language Match
+      if (langTerms && langTerms.length > 0) {
+        const isLangMatch = langTerms.some(term => movieLang === term || movieLang.includes(term) || movieTitle.includes(term));
         if (isLangMatch) score += 500;
         else score -= 300;
       }
 
-      // Genre Match
+      // Level 2: Genre Match
       if (genresArr && genresArr.length > 0) {
         let matchCount = 0;
         genresArr.forEach(g => {
@@ -254,7 +271,7 @@ export default function SearchPage({
         if (matchCount === 0) score -= 150;
       }
 
-      // Mood Match
+      // Level 3: Mood Semantic Match
       if (moodObj && moodObj.query) {
         const keywords = moodObj.query.toLowerCase().split(' ');
         const hasMoodMatch = keywords.some(kw =>
@@ -263,7 +280,7 @@ export default function SearchPage({
         if (hasMoodMatch) score += 200;
       }
 
-      // Platform Preference Bonus (Non-restrictive)
+      // Platform Bonus (Non-restrictive)
       if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
         const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
         if (isAvail) score += 50;
@@ -310,8 +327,13 @@ export default function SearchPage({
       if (finalMovies.length >= 18) break;
     }
 
+    console.log("Ranked results count:", finalMovies.length);
+    if (finalMovies.length > 0) {
+      console.log("Best match selected:", finalMovies[0].title || finalMovies[0].Title);
+    }
+
     return finalMovies;
-  }, []);
+  }, [normalizeLanguageQuery]);
 
   // Main Discovery Search Execution with Preference Object & Dynamic Intention
   const executeDiscovery = useCallback(async (overrides = {}) => {
@@ -327,7 +349,7 @@ export default function SearchPage({
     const eraVal = overrides.era || selectedEra;
     const platformsArr = overrides.platforms || selectedPlatforms;
 
-    console.log("Explore Preferences:", { mood: moodObj.id, genres: genresArr, time: timeVal, language: langVal, era: eraVal, platforms: platformsArr });
+    const cleanLangQuery = (langVal || '').replace(/Cinema|\/ Hollywood/gi, '').trim();
 
     try {
       // 1. Fetch Candidate Dataset Pool dynamically based on user's current selections
@@ -342,16 +364,16 @@ export default function SearchPage({
         ];
 
         // Dedicated search queries based on active user selections
-        if (langVal && langVal !== 'Any Language') {
-          poolPromises.push(api.searchCatalogueMovies(langVal, 50).catch(() => []));
+        if (cleanLangQuery && cleanLangQuery !== 'Any Language') {
+          poolPromises.push(api.searchCatalogueMovies(cleanLangQuery, 60).catch(() => []));
         }
 
         if (genresArr.length > 0) {
           poolPromises.push(api.searchCatalogueMovies(genresArr.join(' '), 50).catch(() => []));
         }
 
-        if (langVal && langVal !== 'Any Language' && genresArr.length > 0) {
-          poolPromises.push(api.searchCatalogueMovies(`${langVal} ${genresArr.join(' ')}`, 50).catch(() => []));
+        if (cleanLangQuery && cleanLangQuery !== 'Any Language' && genresArr.length > 0) {
+          poolPromises.push(api.searchCatalogueMovies(`${cleanLangQuery} ${genresArr.join(' ')}`, 60).catch(() => []));
         }
 
         if (moodObj && moodObj.query) {
