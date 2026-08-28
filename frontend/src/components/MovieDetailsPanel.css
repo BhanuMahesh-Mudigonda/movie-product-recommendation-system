@@ -486,6 +486,66 @@
   margin-top: 2px;
 }
 
+/* STREAMING AVAILABILITY PLATFORMS */
+.streaming-platforms-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.streaming-platform-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  text-decoration: none;
+  transition: all 0.25s ease;
+}
+
+.streaming-platform-card:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.25);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4);
+}
+
+.platform-name-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.platform-name {
+  font-size: 0.88rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+}
+
+.platform-type {
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.platform-link-icon {
+  opacity: 0.85;
+}
+
+.no-streaming-box {
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px dashed rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+}
+
+.no-streaming-text {
+  font-size: 0.88rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
 @media (max-width: 1024px) {
   .details-content-grid {
     grid-template-columns: 1fr;

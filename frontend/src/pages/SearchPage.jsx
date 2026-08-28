@@ -1,7 +1,8 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { STREAMING_PLATFORMS, streamingAvailabilityService } from '../services/streamingAvailabilityService';
 import {
   Search, Film, Heart, Zap, Smile, Moon, HeartHandshake, Crown, 
-  CloudRain, Flame, Play, Star, Calendar, Globe, Clock, ChevronRight, Check, Dices, Ghost, RefreshCw, Home, Sparkles
+  CloudRain, Flame, Play, Star, Calendar, Globe, Clock, ChevronRight, Check, Dices, Ghost, RefreshCw, Home, Sparkles, Tv
 } from 'lucide-react';
 
 import { movieSearchService } from '../services/MovieSearchService';
@@ -66,6 +67,7 @@ export default function SearchPage({
   const [selectedTime, setSelectedTime] = useState('Standard');
   const [selectedLanguage, setSelectedLanguage] = useState('Any Language');
   const [selectedEra, setSelectedEra] = useState('Latest Available');
+  const [selectedPlatform, setSelectedPlatform] = useState('all');
 
   // Live Search Dropdown States
   const [showLiveDropdown, setShowLiveDropdown] = useState(false);
@@ -278,9 +280,13 @@ export default function SearchPage({
     </div>
   );
 
-  const bestMatch = movies[0];
-  const moreMatches = movies.slice(1, 6);
-  const differentStyle = movies.slice(6, 12);
+  const displayMovies = selectedPlatform === 'all'
+    ? movies
+    : movies.filter(m => streamingAvailabilityService.isAvailableOnPlatform(m, selectedPlatform));
+
+  const bestMatch = displayMovies[0];
+  const moreMatches = displayMovies.slice(1, 6);
+  const differentStyle = displayMovies.slice(6, 12);
 
   return (
     <div className="dataset-search-page discovery-engine-page">
@@ -503,6 +509,30 @@ export default function SearchPage({
                   </button>
                 );
               })}
+            </div>
+          </div>
+
+          {/* STREAMING PLATFORMS */}
+          <div className="refine-col platform-refine-col">
+            <h4>WHERE TO WATCH PLATFORM</h4>
+            <div className="refine-options platform-pills-options">
+              {STREAMING_PLATFORMS.map(plat => (
+                <button
+                  key={plat.id}
+                  className={`refine-btn platform-pill-btn ${selectedPlatform === plat.id ? 'active' : ''}`}
+                  onClick={() => setSelectedPlatform(plat.id)}
+                  style={{
+                    borderColor: selectedPlatform === plat.id ? plat.color : 'rgba(255, 255, 255, 0.1)',
+                    color: selectedPlatform === plat.id ? plat.color : '#cbd5e1'
+                  }}
+                >
+                  <div className="btn-content">
+                    <Tv size={14} style={{ color: plat.color }} />
+                    <span>{plat.name}</span>
+                  </div>
+                  {selectedPlatform === plat.id && <div className="check-circle"><Check size={12} /></div>}
+                </button>
+              ))}
             </div>
           </div>
         </div>

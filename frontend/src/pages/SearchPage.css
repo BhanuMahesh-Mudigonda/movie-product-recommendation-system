@@ -847,3 +847,27 @@
 }
 .dataset-empty svg { margin-bottom: 20px; opacity: 0.5; }
 .dataset-empty h2 { color: white; margin: 0 0 10px; }
+
+/* PLATFORM PILL FILTERS */
+.platform-refine-col {
+  grid-column: span 2;
+}
+
+.platform-pills-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.platform-pill-btn {
+  padding: 8px 14px !important;
+  border-radius: 20px !important;
+  font-size: 13px !important;
+  background: rgba(255, 255, 255, 0.03) !important;
+  transition: all 0.25s ease !important;
+}
+
+.platform-pill-btn:hover {
+  background: rgba(255, 255, 255, 0.08) !important;
+  transform: translateY(-1px);
+}

@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { streamingAvailabilityService } from '../services/streamingAvailabilityService';
 import {
-  X, Star, Calendar, Globe, Play, Heart, Bookmark, Check, Clapperboard, Sparkles, CheckCircle2, Dna, ShieldCheck
+  X, Star, Calendar, Globe, Play, Heart, Bookmark, Check, Clapperboard, Sparkles, CheckCircle2, Dna, ShieldCheck, Tv, ExternalLink
 } from 'lucide-react';
 
 import { api } from '../services/api';
@@ -118,6 +119,7 @@ export default function MovieDetailsPanel({
     : (Array.isArray(movie?.cast) && movie.cast.length > 0 ? movie.cast : []);
 
   const finalDirector = enrichedMeta?.director || movie?.director || '';
+  const streamingPlatforms = streamingAvailabilityService.getAvailability(movie);
 
   const handleToggleFav = () => {
     const normalized = normalizeMovie(movie) || movie;
@@ -280,6 +282,40 @@ export default function MovieDetailsPanel({
                       <p>
                         This story unfolds within the <strong>{genres[0] || 'Cinematic'}</strong> genre universe, featuring rich narrative depth, atmospheric score, and memorable character arcs.
                       </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* WHERE TO WATCH / STREAMING AVAILABILITY */}
+                <div className="details-section-box">
+                  <h3 className="section-heading">
+                    <Tv size={16} className="heading-sparkle" /> WHERE TO WATCH
+                  </h3>
+                  {streamingPlatforms.length > 0 ? (
+                    <div className="streaming-platforms-grid">
+                      {streamingPlatforms.map((plat) => (
+                        <a
+                          key={plat.id}
+                          href={plat.watchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="streaming-platform-card"
+                          style={{
+                            backgroundColor: plat.badgeBg,
+                            borderColor: plat.badgeBorder
+                          }}
+                        >
+                          <div className="platform-name-col">
+                            <span className="platform-name" style={{ color: plat.color }}>{plat.name}</span>
+                            <span className="platform-type">{plat.type}</span>
+                          </div>
+                          <ExternalLink size={14} className="platform-link-icon" style={{ color: plat.color }} />
+                        </a>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="no-streaming-box">
+                      <p className="no-streaming-text">Streaming availability information is currently unavailable.</p>
                     </div>
                   )}
                 </div>
