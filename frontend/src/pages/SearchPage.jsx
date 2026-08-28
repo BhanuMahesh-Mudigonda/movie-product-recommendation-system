@@ -198,35 +198,76 @@ export default function SearchPage({
     const platformsArr = overrides.platforms || selectedPlatforms;
 
     try {
-      // 1. Fetch Candidate Dataset Pool from MovieMind master dataset
-      let pool = await localSimilarityService.getLocalDatasetPool();
-      if (!Array.isArray(pool) || pool.length === 0) {
-        const homeData = await api.getHomeMovies(30);
-        if (homeData && typeof homeData === 'object') {
-          const list = [];
-          Object.values(homeData).forEach(cat => {
-            if (Array.isArray(cat)) list.push(...cat);
-          });
-          pool = list;
-        }
+      // 1. Fetch Candidate Dataset Pool from multiple MovieMind endpoints
+      const poolPromises = [
+        api.getExploreMovies(60).catch(() => []),
+        api.getHomeMovies(30).catch(() => ({})),
+        api.getPopularMovies(40).catch(() => []),
+        localSimilarityService.getLocalDatasetPool().catch(() => [])
+      ];
+
+      // If a specific language is selected, pull dedicated titles from catalogue engine
+      if (langVal && langVal !== 'Any Language') {
+        poolPromises.push(api.searchCatalogueMovies(langVal, 35).catch(() => []));
       }
 
-      if (!Array.isArray(pool) || pool.length === 0) {
+      // If specific mood has keywords, also pull matching catalogue candidates
+      if (moodObj && moodObj.query) {
+        poolPromises.push(api.searchCatalogueMovies(moodObj.query, 25).catch(() => []));
+      }
+
+      const results = await Promise.allSettled(poolPromises);
+      const rawPool = [];
+
+      results.forEach(res => {
+        if (res.status === 'fulfilled' && res.value) {
+          const val = res.value;
+          if (Array.isArray(val)) {
+            rawPool.push(...val);
+          } else if (typeof val === 'object') {
+            if (Array.isArray(val.movies)) {
+              rawPool.push(...val.movies);
+            } else {
+              Object.values(val).forEach(cat => {
+                if (Array.isArray(cat)) rawPool.push(...cat);
+              });
+            }
+          }
+        }
+      });
+
+      // Deduplicate raw pool
+      const poolMap = new Map();
+      rawPool.forEach(m => {
+        if (m) {
+          const id = String(m.movieId || m.id || m.title || '').toLowerCase().trim();
+          if (id && !poolMap.has(id)) {
+            poolMap.set(id, m);
+          }
+        }
+      });
+
+      let pool = Array.from(poolMap.values());
+      if (pool.length === 0) {
         pool = await api.getPopularMovies(50);
       }
 
       // 2. Score each candidate movie based on selected preferences
       const scoredCandidates = (pool || []).map(movie => {
-        let score = (parseFloat(movie.rating) || 7.5) * 2; // base rating score (10-20 pts)
+        let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 2; // base rating (10-20 pts)
         const movieGenres = (movie.genres || movie.genre || '').toLowerCase();
         const movieLang = (movie.language || movie.original_language || '').toLowerCase();
-        const movieYear = parseInt(movie.year || '2020', 10);
+        const movieTitle = (movie.title || movie.original_title || '').toLowerCase();
+        const movieOverview = (movie.overview || movie.description || '').toLowerCase();
+        const movieYear = parseInt(movie.year || movie.release_year || '2020', 10);
         const movieRuntime = parseInt(movie.runtime || '120', 10);
 
-        // A. Mood Match (+35)
+        // A. Mood Match (+35 pts)
         if (moodObj && moodObj.query) {
           const moodKeywords = moodObj.query.toLowerCase().split(' ');
-          const hasMoodMatch = moodKeywords.some(kw => movieGenres.includes(kw) || (movie.overview || '').toLowerCase().includes(kw));
+          const hasMoodMatch = moodKeywords.some(kw => 
+            movieGenres.includes(kw) || movieOverview.includes(kw) || movieTitle.includes(kw)
+          );
           if (hasMoodMatch) score += 35;
         }
 
@@ -239,25 +280,26 @@ export default function SearchPage({
           });
         }
 
-        // C. Language Match (+30)
+        // C. Language Match (+35 pts for exact language)
         if (langVal && langVal !== 'Any Language') {
-          if (movieLang.includes(langVal.toLowerCase())) {
-            score += 30;
+          const cleanLang = langVal.toLowerCase();
+          if (movieLang.includes(cleanLang) || movieTitle.includes(cleanLang)) {
+            score += 35;
           }
         }
 
-        // D. OTT / Platform Match (+25)
+        // D. OTT / Platform Match (+25 pts bonus - NEVER eliminates)
         if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
           const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
           if (isAvail) score += 25;
         }
 
-        // E. Runtime Match (+15)
+        // E. Runtime Match (+15 pts)
         if (timeVal === 'Quick Watch' && movieRuntime < 115) score += 15;
         else if (timeVal === 'Standard' && movieRuntime >= 105 && movieRuntime <= 145) score += 15;
         else if (timeVal === 'Long Movie' && movieRuntime >= 140) score += 15;
 
-        // F. Era Match (+15)
+        // F. Era Match (+15 pts)
         if (eraVal === 'Latest Available' && movieYear >= 2020) score += 15;
         else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 15;
         else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 15;
@@ -329,7 +371,7 @@ export default function SearchPage({
     
     setLoading(true);
     setHasSearched(true);
-    movieSearchService.searchMovies(globalQuery, 16)
+    movieSearchService.searchMovies(globalQuery, 18)
       .then(res => {
         const list = Array.isArray(res) ? res : (res?.movies || []);
         return Promise.all(list.map(m => movieEnrichmentService.enrichMovie(m).catch(() => m)));
@@ -401,22 +443,10 @@ export default function SearchPage({
     executeDiscovery({ mood: 'adrenaline', genres: [], time: 'Standard', language: 'Any Language', era: 'Latest Available' });
   };
 
-  // Filter display movies by selected platform preferences
-  const isPlatformFiltered = !selectedPlatforms.includes('all') && selectedPlatforms.length > 0;
-
-  const exactPlatformMatches = isPlatformFiltered
-    ? movies.filter(m => selectedPlatforms.some(pId => streamingAvailabilityService.isAvailableOnPlatform(m, pId)))
-    : movies;
-
-  const isUsingFallbackAlternatives = isPlatformFiltered && exactPlatformMatches.length === 0;
-
-  const displayMovies = (isPlatformFiltered && exactPlatformMatches.length > 0)
-    ? exactPlatformMatches
-    : movies;
-
+  const displayMovies = movies;
   const bestMatch = displayMovies[0];
-  const moreMatches = displayMovies.slice(1, 6);
-  const differentStyle = displayMovies.slice(6, 12);
+  const moreMatches = displayMovies.slice(1, 7);
+  const differentStyle = displayMovies.slice(7, 13);
 
   const activeStepObj = DISCOVERY_STEPS.find(s => s.step === currentStep) || DISCOVERY_STEPS[0];
 
@@ -734,23 +764,14 @@ export default function SearchPage({
           
           <div className="results-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
             <h3 style={{ margin: 0, fontSize: '15px', color: '#cbd5e1', letterSpacing: '1px' }}>
-              {isUsingFallbackAlternatives
-                ? `RECOMMENDED MOVIE ALTERNATIVES FOR YOUR MOOD`
-                : isPlatformFiltered
-                  ? `RECOMMENDED ON SELECTED PLATFORMS`
-                  : `RECOMMENDED FOR YOUR MOOD & PREFERENCES`}
+              {!selectedPlatforms.includes('all') && selectedPlatforms.length > 0
+                ? `RECOMMENDED FOR YOUR MOOD & PLATFORM PREFERENCES`
+                : `RECOMMENDED FOR YOUR MOOD & PREFERENCES`}
             </h3>
             <span className="src-ai-badge" style={{ background: 'rgba(6,182,212,0.15)', color: 'var(--accent-cyan)', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600' }}>
               <Sparkles size={14} style={{ display: 'inline', marginRight: '6px' }} /> Smart Match Engine
             </span>
           </div>
-
-          {isUsingFallbackAlternatives && (
-            <div className="platform-fallback-banner" style={{ background: 'rgba(255, 102, 0, 0.12)', border: '1px solid rgba(255, 102, 0, 0.3)', borderRadius: '12px', padding: '12px 16px', marginBottom: '20px', color: '#ffaa66', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Sparkles size={16} />
-              <span>Direct streaming on your selected platforms is currently unavailable for this specific query, but here are top recommended movie alternatives for your mood & taste!</span>
-            </div>
-          )}
 
           {bestMatch && (
             <div className="best-match-card" onClick={() => onMovieSelect(bestMatch)}>
