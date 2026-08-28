@@ -621,15 +621,15 @@ export default function SearchPage({
               </button>
             )}
 
-            {currentStep < 6 ? (
+            {currentStep < 6 && (
               <button className="step-nav-btn next-btn" onClick={handleNextStep}>
                 Next Step <ChevronRight size={16} />
               </button>
-            ) : (
-              <button className="find-perfect-btn journey-generate-btn" onClick={() => executeDiscovery()}>
-                <span>Generate Recommendations</span> <Sparkles size={18} />
-              </button>
             )}
+
+            <button className="find-perfect-btn journey-generate-btn" onClick={() => executeDiscovery()}>
+              <span>Find My Movie</span> <Sparkles size={18} />
+            </button>
           </div>
         </div>
       </section>
@@ -774,6 +774,18 @@ export default function SearchPage({
             </div>
           )}
         </section>
+      )}
+
+      {!loading && hasSearched && !searchError && displayMovies.length === 0 && (
+        <div className="dataset-empty fade-in" style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+          <Film size={48} style={{ marginBottom: '16px', opacity: 0.5 }} />
+          <h2 style={{ color: '#ffffff', margin: '0 0 10px', fontSize: '1.4rem' }}>
+            {globalQuery ? `No movies found for '${globalQuery}'` : `No matching movies found`}
+          </h2>
+          <p style={{ margin: 0, fontSize: '0.92rem' }}>
+            Try another title, actor, genre, or language to discover cinema options.
+          </p>
+        </div>
       )}
 
       {/* TRAILER MODAL */}
