@@ -183,7 +183,7 @@ export default function SearchPage({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Main Discovery Search Execution with Weighted Preference Scoring
+  // Main Discovery Search Execution with Weighted Preference Scoring & Guaranteed Completion
   const executeDiscovery = useCallback(async (overrides = {}) => {
     const searchId = ++activeSearchId.current;
     setLoading(true);
@@ -197,64 +197,72 @@ export default function SearchPage({
     const eraVal = overrides.era || selectedEra;
     const platformsArr = overrides.platforms || selectedPlatforms;
 
+    console.log("Explore Preferences:", { mood: moodObj.id, genres: genresArr, time: timeVal, language: langVal, era: eraVal, platforms: platformsArr });
+
     try {
-      // 1. Fetch Candidate Dataset Pool from multiple MovieMind endpoints
-      const poolPromises = [
-        api.getExploreMovies(60).catch(() => []),
-        api.getHomeMovies(30).catch(() => ({})),
-        api.getPopularMovies(40).catch(() => []),
-        localSimilarityService.getLocalDatasetPool().catch(() => [])
-      ];
+      // 1. Fetch Candidate Dataset Pool from master datasets synchronously / with fast fallbacks
+      let pool = [];
 
-      // If a specific language is selected, pull dedicated titles from catalogue engine
-      if (langVal && langVal !== 'Any Language') {
-        poolPromises.push(api.searchCatalogueMovies(langVal, 35).catch(() => []));
+      try {
+        const poolPromises = [
+          api.getExploreMovies(60).catch(() => []),
+          api.getHomeMovies(30).catch(() => ({})),
+          api.getPopularMovies(40).catch(() => []),
+          localSimilarityService.getLocalDatasetPool().catch(() => [])
+        ];
+
+        if (langVal && langVal !== 'Any Language') {
+          poolPromises.push(api.searchCatalogueMovies(langVal, 35).catch(() => []));
+        }
+
+        const results = await Promise.allSettled(poolPromises);
+
+        results.forEach(res => {
+          if (res.status === 'fulfilled' && res.value) {
+            const val = res.value;
+            if (Array.isArray(val)) {
+              pool.push(...val);
+            } else if (typeof val === 'object') {
+              if (Array.isArray(val.movies)) {
+                pool.push(...val.movies);
+              } else {
+                Object.values(val).forEach(cat => {
+                  if (Array.isArray(cat)) pool.push(...cat);
+                });
+              }
+            }
+          }
+        });
+      } catch (poolErr) {
+        console.warn("Candidate pool fetch error, using local fallback:", poolErr);
       }
 
-      // If specific mood has keywords, also pull matching catalogue candidates
-      if (moodObj && moodObj.query) {
-        poolPromises.push(api.searchCatalogueMovies(moodObj.query, 25).catch(() => []));
-      }
-
-      const results = await Promise.allSettled(poolPromises);
-      const rawPool = [];
-
-      results.forEach(res => {
-        if (res.status === 'fulfilled' && res.value) {
-          const val = res.value;
-          if (Array.isArray(val)) {
-            rawPool.push(...val);
-          } else if (typeof val === 'object') {
-            if (Array.isArray(val.movies)) {
-              rawPool.push(...val.movies);
-            } else {
-              Object.values(val).forEach(cat => {
-                if (Array.isArray(cat)) rawPool.push(...cat);
-              });
+      // Deduplicate pool
+      const poolMap = new Map();
+      pool.forEach(m => {
+        if (m) {
+          const norm = normalizeMovie(m);
+          if (norm && norm.title) {
+            const id = String(norm.movieId || norm.id || norm.title).toLowerCase().trim();
+            if (!poolMap.has(id)) {
+              poolMap.set(id, norm);
             }
           }
         }
       });
 
-      // Deduplicate raw pool
-      const poolMap = new Map();
-      rawPool.forEach(m => {
-        if (m) {
-          const id = String(m.movieId || m.id || m.title || '').toLowerCase().trim();
-          if (id && !poolMap.has(id)) {
-            poolMap.set(id, m);
-          }
-        }
-      });
+      let candidateList = Array.from(poolMap.values());
 
-      let pool = Array.from(poolMap.values());
-      if (pool.length === 0) {
-        pool = await api.getPopularMovies(50);
+      // If pool is empty, fallback to local similarity pool immediately
+      if (candidateList.length === 0) {
+        candidateList = await localSimilarityService.getLocalDatasetPool();
       }
 
-      // 2. Score each candidate movie based on selected preferences
-      const scoredCandidates = (pool || []).map(movie => {
-        let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 2; // base rating (10-20 pts)
+      console.log("Catalogue Count:", candidateList.length);
+
+      // 2. Score candidate movies based on weighted preferences
+      const scoredCandidates = (candidateList || []).map(movie => {
+        let score = (parseFloat(movie.rating || movie.vote_average || movie.avg_rating) || 7.5) * 2;
         const movieGenres = (movie.genres || movie.genre || '').toLowerCase();
         const movieLang = (movie.language || movie.original_language || '').toLowerCase();
         const movieTitle = (movie.title || movie.original_title || '').toLowerCase();
@@ -288,7 +296,7 @@ export default function SearchPage({
           }
         }
 
-        // D. OTT / Platform Match (+25 pts bonus - NEVER eliminates)
+        // D. OTT / Platform Preference Bonus (+25 pts - NEVER eliminates)
         if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
           const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
           if (isAvail) score += 25;
@@ -313,46 +321,48 @@ export default function SearchPage({
         };
       });
 
-      // 3. Sort descending by weighted discovery score
+      // 3. Sort descending by score
       scoredCandidates.sort((a, b) => b.discoveryScore - a.discoveryScore);
 
-      // 4. Deduplicate candidates by unique ID/title
+      // 4. Take top unique movies
       const seenIds = new Set();
-      const uniqueList = [];
+      const finalMovies = [];
       for (const item of scoredCandidates) {
         const id = String(item.movieId || item.id || item.title).toLowerCase().trim();
         if (!seenIds.has(id)) {
           seenIds.add(id);
-          uniqueList.push(item);
+          finalMovies.push(item);
         }
-        if (uniqueList.length >= 18) break;
+        if (finalMovies.length >= 18) break;
       }
 
-      if (searchId !== activeSearchId.current) return;
+      console.log("Final Recommendations Count:", finalMovies.length);
 
-      // 5. Enrich with posters/trailers if needed
-      const enrichedList = await Promise.all(
-        uniqueList.map(async (m) => {
-          try {
-            return await movieEnrichmentService.enrichMovie(m);
-          } catch {
-            return m;
-          }
-        })
-      );
-
-      setMovies(enrichedList);
-      setLoading(false);
-
-      setTimeout(() => {
-        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }, 150);
+      if (searchId === activeSearchId.current && finalMovies.length > 0) {
+        setMovies(finalMovies);
+      }
 
     } catch (err) {
-      if (searchId !== activeSearchId.current) return;
       console.error("Discovery error:", err);
-      setSearchError(true);
-      setLoading(false);
+      if (searchId === activeSearchId.current) {
+        try {
+          const fallbackPool = await localSimilarityService.getLocalDatasetPool();
+          if (fallbackPool.length > 0) {
+            setMovies(fallbackPool.slice(0, 18));
+          } else {
+            setSearchError(true);
+          }
+        } catch {
+          setSearchError(true);
+        }
+      }
+    } finally {
+      if (searchId === activeSearchId.current) {
+        setLoading(false);
+        setTimeout(() => {
+          resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 100);
+      }
     }
   }, [selectedMood, selectedGenres, selectedTime, selectedLanguage, selectedEra, selectedPlatforms]);
 
