@@ -57,6 +57,9 @@ const LANGUAGE_OPTIONS = [
   { id: 'Telugu', label: 'Telugu Cinema' },
   { id: 'Hindi', label: 'Hindi Cinema' },
   { id: 'English', label: 'English / Hollywood' },
+  { id: 'Tamil', label: 'Tamil Cinema' },
+  { id: 'Malayalam', label: 'Malayalam Cinema' },
+  { id: 'Kannada', label: 'Kannada Cinema' },
   { id: 'Any Language', label: 'Any Language (Global)' }
 ];
 
