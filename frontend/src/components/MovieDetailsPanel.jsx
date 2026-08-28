@@ -82,6 +82,7 @@ export default function MovieDetailsPanel({
   const title = movie?.title || movie?.Title || movie?.name || 'Untitled Movie';
   const year = movie?.year || movie?.Year || movie?.release_year || '';
   const rating = movie?.rating || movie?.imdbRating || movie?.vote_average || 'N/A';
+  const runtime = movie?.runtime || movie?.Runtime || movie?.runtime_minutes || movie?.duration || movie?.details?.runtime || '';
 
   const rawGenre = movie?.genres || movie?.genre || movie?.Genre || '';
   const genres = Array.isArray(rawGenre)

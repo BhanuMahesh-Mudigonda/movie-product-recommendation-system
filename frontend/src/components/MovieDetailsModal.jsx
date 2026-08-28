@@ -31,32 +31,32 @@ export default function MovieDetailsModal({ movie, onClose }) {
 
   if (!movie) return null;
 
-  const title = details.title || details.Title || 'Unknown Movie';
-  const year = details.year || details.Year || '';
-  const poster = details.poster || details.Poster;
+  const title = details?.title || details?.Title || details?.name || 'Unknown Movie';
+  const year = details?.year || details?.Year || details?.release_year || '';
+  const poster = details?.poster || details?.Poster || details?.posterUrl || details?.poster_path;
 
-  const genreText = details.genre || details.genres || details.Genre || '';
+  const genreText = details?.genre || details?.genres || details?.Genre || '';
 
   const genres = Array.isArray(genreText)
     ? genreText
-    : genreText
-        .replace(/\|/g, ',')
-        .split(',')
-        .map(g => g.trim())
-        .filter(Boolean);
+    : (typeof genreText === 'string'
+        ? genreText.replace(/\|/g, ',').split(',').map(g => g.trim()).filter(Boolean)
+        : []);
 
   const rating =
-    details.imdbRating ||
-    details.rating;
+    details?.imdbRating ||
+    details?.rating ||
+    details?.vote_average ||
+    'N/A';
 
-  const director = details.director || details.Director;
-  const actors = details.cast || details.actors || details.Actors;
-  const runtime = details.runtime || details.Runtime;
-  const language = details.language || details.Language;
-  const country = details.country || details.Country;
-  const plot = details.plot || details.Plot;
-  const trailer = details.trailer;
-  const whereToWatch = details.whereToWatch || [];
+  const director = details?.director || details?.Director;
+  const actors = details?.cast || details?.actors || details?.Actors || [];
+  const runtime = details?.runtime || details?.Runtime || details?.runtime_minutes || details?.duration || details?.details?.runtime || null;
+  const language = details?.language || details?.Language || details?.original_language;
+  const country = details?.country || details?.Country;
+  const plot = details?.plot || details?.Plot || details?.overview || details?.description;
+  const trailer = details?.trailer;
+  const whereToWatch = details?.whereToWatch || [];
 
   const recommendationScore =
     typeof details.recommendationScore === 'number' 

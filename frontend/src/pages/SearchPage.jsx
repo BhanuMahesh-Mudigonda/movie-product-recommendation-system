@@ -730,7 +730,10 @@ export default function SearchPage({
               </button>
             )}
 
-            <button className="find-perfect-btn journey-generate-btn" onClick={() => executeDiscovery()}>
+            <button 
+              className={`find-perfect-btn journey-generate-btn ${currentStep === 6 ? 'highlighted-active' : ''}`} 
+              onClick={() => executeDiscovery()}
+            >
               <span>Find My Movie</span> <Sparkles size={18} />
             </button>
           </div>

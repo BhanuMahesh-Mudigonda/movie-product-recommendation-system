@@ -667,6 +667,13 @@
   padding: 10px 24px !important;
   font-size: 0.9rem !important;
   border-radius: 12px !important;
+  transition: all 0.3s ease !important;
+}
+
+.journey-generate-btn.highlighted-active {
+  box-shadow: 0 0 25px rgba(0, 242, 255, 0.6) !important;
+  transform: scale(1.03) !important;
+  filter: brightness(1.15) !important;
 }
 
 /* =========================================================
