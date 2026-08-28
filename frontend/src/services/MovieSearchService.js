@@ -366,6 +366,27 @@ class MovieSearchService {
       return norm;
     }
   }
+
+  /**
+   * Unified safe search method returning normalized movie array
+   */
+  async searchMovies(query, limit = 20) {
+    const cleanQuery = String(query || '').trim();
+    if (!cleanQuery) return [];
+
+    try {
+      const results = await this.search(cleanQuery);
+      if (Array.isArray(results)) {
+        return limit ? results.slice(0, limit) : results;
+      }
+      return [];
+    } catch (err) {
+      console.error("searchMovies error:", err);
+      return [];
+    }
+  }
 }
 
 export const movieSearchService = new MovieSearchService();
+export default movieSearchService;
+

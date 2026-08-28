@@ -9,6 +9,8 @@ import { movieSearchService } from '../services/MovieSearchService';
 import { movieMindBrain } from '../services/movieMindBrain';
 import { movieMindRanker } from '../services/movieMindRanker';
 import { movieEnrichmentService } from '../services/movieEnrichmentService';
+import { localSimilarityService } from '../services/localSimilarityService';
+import { api } from '../services/api';
 import SearchResultCard from '../components/SearchResultCard';
 import MovieCard from '../components/MovieCard';
 import TrailerModal from '../components/TrailerModal';
@@ -181,7 +183,7 @@ export default function SearchPage({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Main Discovery Search Execution
+  // Main Discovery Search Execution with Weighted Preference Scoring
   const executeDiscovery = useCallback(async (overrides = {}) => {
     const searchId = ++activeSearchId.current;
     setLoading(true);
@@ -193,31 +195,102 @@ export default function SearchPage({
     const timeVal = overrides.time || selectedTime;
     const langVal = overrides.language || selectedLanguage;
     const eraVal = overrides.era || selectedEra;
-
-    let queryText = moodObj.query || 'feel good';
-    if (genresArr.length > 0) {
-      queryText += ' ' + genresArr.join(' ');
-    }
-    if (langVal && langVal !== 'Any Language') {
-      queryText += ' ' + langVal;
-    }
+    const platformsArr = overrides.platforms || selectedPlatforms;
 
     try {
-      const results = await movieMindBrain.discoverMovies({
-        query: queryText,
-        mood: moodObj.id,
-        genres: genresArr,
-        time: timeVal,
-        language: langVal,
-        era: eraVal,
-        limit: 18
+      // 1. Fetch Candidate Dataset Pool from MovieMind master dataset
+      let pool = await localSimilarityService.getLocalDatasetPool();
+      if (!Array.isArray(pool) || pool.length === 0) {
+        const homeData = await api.getHomeMovies(30);
+        if (homeData && typeof homeData === 'object') {
+          const list = [];
+          Object.values(homeData).forEach(cat => {
+            if (Array.isArray(cat)) list.push(...cat);
+          });
+          pool = list;
+        }
+      }
+
+      if (!Array.isArray(pool) || pool.length === 0) {
+        pool = await api.getPopularMovies(50);
+      }
+
+      // 2. Score each candidate movie based on selected preferences
+      const scoredCandidates = (pool || []).map(movie => {
+        let score = (parseFloat(movie.rating) || 7.5) * 2; // base rating score (10-20 pts)
+        const movieGenres = (movie.genres || movie.genre || '').toLowerCase();
+        const movieLang = (movie.language || movie.original_language || '').toLowerCase();
+        const movieYear = parseInt(movie.year || '2020', 10);
+        const movieRuntime = parseInt(movie.runtime || '120', 10);
+
+        // A. Mood Match (+35)
+        if (moodObj && moodObj.query) {
+          const moodKeywords = moodObj.query.toLowerCase().split(' ');
+          const hasMoodMatch = moodKeywords.some(kw => movieGenres.includes(kw) || (movie.overview || '').toLowerCase().includes(kw));
+          if (hasMoodMatch) score += 35;
+        }
+
+        // B. Genre Match (+25 per matching genre)
+        if (genresArr.length > 0) {
+          genresArr.forEach(g => {
+            if (movieGenres.includes(g.toLowerCase())) {
+              score += 25;
+            }
+          });
+        }
+
+        // C. Language Match (+30)
+        if (langVal && langVal !== 'Any Language') {
+          if (movieLang.includes(langVal.toLowerCase())) {
+            score += 30;
+          }
+        }
+
+        // D. OTT / Platform Match (+25)
+        if (platformsArr && !platformsArr.includes('all') && platformsArr.length > 0) {
+          const isAvail = platformsArr.some(pId => streamingAvailabilityService.isAvailableOnPlatform(movie, pId));
+          if (isAvail) score += 25;
+        }
+
+        // E. Runtime Match (+15)
+        if (timeVal === 'Quick Watch' && movieRuntime < 115) score += 15;
+        else if (timeVal === 'Standard' && movieRuntime >= 105 && movieRuntime <= 145) score += 15;
+        else if (timeVal === 'Long Movie' && movieRuntime >= 140) score += 15;
+
+        // F. Era Match (+15)
+        if (eraVal === 'Latest Available' && movieYear >= 2020) score += 15;
+        else if (eraVal === 'Modern Favorites' && movieYear >= 2005 && movieYear <= 2021) score += 15;
+        else if (eraVal === 'Classic Favorites' && movieYear < 2005) score += 15;
+        else if (eraVal === 'Hidden Gems' && (parseFloat(movie.rating) || 0) >= 7.8) score += 15;
+        else if (eraVal === 'Surprise Me') score += Math.random() * 12;
+
+        return {
+          ...movie,
+          discoveryScore: Math.round(score),
+          movieMindScore: Math.min(99, Math.round(score))
+        };
       });
+
+      // 3. Sort descending by weighted discovery score
+      scoredCandidates.sort((a, b) => b.discoveryScore - a.discoveryScore);
+
+      // 4. Deduplicate candidates by unique ID/title
+      const seenIds = new Set();
+      const uniqueList = [];
+      for (const item of scoredCandidates) {
+        const id = String(item.movieId || item.id || item.title).toLowerCase().trim();
+        if (!seenIds.has(id)) {
+          seenIds.add(id);
+          uniqueList.push(item);
+        }
+        if (uniqueList.length >= 18) break;
+      }
 
       if (searchId !== activeSearchId.current) return;
 
-      const rawList = Array.isArray(results) ? results : (results?.movies || []);
+      // 5. Enrich with posters/trailers if needed
       const enrichedList = await Promise.all(
-        rawList.map(async (m) => {
+        uniqueList.map(async (m) => {
           try {
             return await movieEnrichmentService.enrichMovie(m);
           } catch {
@@ -239,7 +312,7 @@ export default function SearchPage({
       setSearchError(true);
       setLoading(false);
     }
-  }, [selectedMood, selectedGenres, selectedTime, selectedLanguage, selectedEra]);
+  }, [selectedMood, selectedGenres, selectedTime, selectedLanguage, selectedEra, selectedPlatforms]);
 
   // Initial load
   useEffect(() => {

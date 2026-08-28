@@ -258,7 +258,7 @@ export default function MovieDetailsPanel({
                 {/* CAST & DIRECTOR */}
                 <div className="details-section-box">
                   <h3 className="section-heading">
-                    {finalCast.length > 0 ? 'FEATURED CAST & DIRECTOR' : 'CHARACTER ATMOSPHERE & UNIVERSE'}
+                    {finalCast.length > 0 ? 'FEATURED CAST & DIRECTOR' : finalDirector ? 'DIRECTOR & FILM HIGHLIGHTS' : 'KEY MOVIE HIGHLIGHTS'}
                   </h3>
                   
                   {finalDirector && (
@@ -278,9 +278,9 @@ export default function MovieDetailsPanel({
                     </div>
                   ) : (
                     <div className="atmosphere-fallback-box">
-                      <Clapperboard size={20} className="atmo-icon" />
+                      <Clapperboard size={18} className="atmo-icon" />
                       <p>
-                        Cast information currently unavailable for this title. This movie features rich narrative depth within the <strong>{genres[0] || 'Cinematic'}</strong> universe.
+                        {finalDirector ? `Directed by ${finalDirector}. ` : ''}A {genres.slice(0, 2).join(' / ') || 'Cinematic'} presentation released in {year || 'recent years'}, carrying an audience rating of {rating}/10 across {runtime || 'feature runtime'}.
                       </p>
                     </div>
                   )}
@@ -324,7 +324,7 @@ export default function MovieDetailsPanel({
                     </div>
                   ) : (
                     <div className="no-streaming-box">
-                      <p className="no-streaming-text">No verified watch destination is currently mapped for this title.</p>
+                      <p className="no-streaming-text">Streaming information not listed in current movie data.</p>
                     </div>
                   )}
                 </div>
